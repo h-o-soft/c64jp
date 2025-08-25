@@ -67,6 +67,9 @@ help:
 	@echo "  make dict              - Update dictionary and create CRT"
 	@echo "  make crt               - Create CRT file only"
 	@echo "  make fonts             - Create font files only"
+	@echo "  make d64               - Create D64 disk image with all programs"
+	@echo "  make build-all         - Build all release targets"
+	@echo "  make release-files     - Create both CRT and D64 files"
 	@echo "  make clean             - Remove build artifacts"
 	@echo "  make clean-all         - Remove all generated files including fonts"
 	@echo "  make help              - Show this help"
@@ -240,6 +243,7 @@ run-modem-no-crt: $(PRG_FILE)
 clean:
 	@echo "Removing build artifacts..."
 	@rm -f $(BUILD_DIR)/*.prg
+	@rm -f $(BUILD_DIR)/*.d64
 	@rm -f $(DICCONV_DIR)/skkdic*.bin
 	@rm -f $(CRT_DIR)/*.crt
 	@echo "Cleanup completed"
@@ -288,4 +292,48 @@ stateful:
 .PHONY: modem
 modem:
 	@$(MAKE) TARGET=modem_test run-modem
+
+# D64 disk image creation
+# Release targets for D64 creation
+RELEASE_TARGETS := hello hello_bitmap hello_resource ime_test modem_test
+D64_IMAGE := $(BUILD_DIR)/c64jp_programs.d64
+
+.PHONY: build-all
+build-all:
+	@echo "=== Building All Release Targets ==="
+	@for target in $(RELEASE_TARGETS); do \
+		echo "Building $$target.p8..."; \
+		$(MAKE) TARGET=$$target $(BUILD_DIR)/$$target.prg || exit 1; \
+	done
+	@echo "All targets built successfully"
+
+.PHONY: d64
+d64: build-all $(BASIC_CRT)
+	@echo "=== Creating D64 Disk Image ==="
+	@if ! which c1541 >/dev/null 2>&1; then \
+		echo "Error: c1541 not found. Please install VICE emulator."; \
+		exit 1; \
+	fi
+	@echo "Creating disk image: $(D64_IMAGE)"
+	@c1541 -format "c64jp,01" d64 "$(D64_IMAGE)"
+	@echo "Adding programs to disk image..."
+	@for target in $(RELEASE_TARGETS); do \
+		if [ -f "$(BUILD_DIR)/$$target.prg" ]; then \
+			echo "  Adding $$target.prg"; \
+			c1541 "$(D64_IMAGE)" -write "$(BUILD_DIR)/$$target.prg" "$$target"; \
+		else \
+			echo "  Warning: $$target.prg not found"; \
+		fi; \
+	done
+	@echo "D64 disk image created: $(D64_IMAGE)"
+	@echo ""
+	@echo "Contents of $(D64_IMAGE):"
+	@c1541 "$(D64_IMAGE)" -list
+
+.PHONY: release-files
+release-files: d64
+	@echo "=== Release Files Ready ==="
+	@echo "CRT File: $(BASIC_CRT)"
+	@echo "D64 File: $(D64_IMAGE)"
+	@ls -la "$(BASIC_CRT)" "$(D64_IMAGE)"
 

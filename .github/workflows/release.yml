@@ -1,0 +1,110 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Triggers on version tags like v1.0.0
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+        
+    - name: Install VICE emulator (for c1541)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y vice
+        
+    - name: Install Prog8 compiler
+      run: |
+        # Download and install prog8 compiler
+        wget https://github.com/irmen/prog8/releases/download/v11.4.1/prog8-v11.4.1-all.jar
+        sudo mkdir -p /opt/prog8
+        sudo mv prog8-v11.4.1-all.jar /opt/prog8/
+        
+        # Create wrapper script
+        sudo tee /usr/local/bin/prog8c << 'EOF'
+        #!/bin/bash
+        java -jar /opt/prog8/prog8-v11.4.1-all.jar "$@"
+        EOF
+        sudo chmod +x /usr/local/bin/prog8c
+        
+        # Install 64tass (included with prog8 but need separate binary)
+        wget https://github.com/irmen/prog8/releases/download/v11.4.1/64tass-v11.4.1-linux-x64.tar.gz
+        tar -xzf 64tass-v11.4.1-linux-x64.tar.gz
+        sudo mv 64tass /usr/local/bin/
+        sudo chmod +x /usr/local/bin/64tass
+        
+    - name: Build fonts (with automatic download)
+      run: make fonts
+      
+    - name: Build dictionary
+      run: make dict
+      
+    - name: Build release files
+      run: make release-files
+      
+    - name: Get version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+    - name: Create release package
+      run: |
+        mkdir -p release
+        cp crt/kanji_magicdesk_basic.crt release/
+        cp prog8/build/c64jp_programs.d64 release/
+        cp README.md release/
+        cp README-en.md release/
+        cp LICENSE release/
+        
+        # Create release zip
+        cd release
+        zip -r ../c64jp-${{ steps.get_version.outputs.VERSION }}.zip .
+        cd ..
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          c64jp-${{ steps.get_version.outputs.VERSION }}.zip
+          crt/kanji_magicdesk_basic.crt
+          prog8/build/c64jp_programs.d64
+        name: C64JP ${{ steps.get_version.outputs.VERSION }}
+        body: |
+          # C64 日本語プロジェクト ${{ steps.get_version.outputs.VERSION }}
+          
+          Commodore 64で日本語表示とかな漢字変換を実現するプロジェクトのリリースです。
+          
+          ## ファイル構成
+          
+          - **c64jp-${{ steps.get_version.outputs.VERSION }}.zip** - 完全パッケージ（CRT + D64 + ドキュメント）
+          - **kanji_magicdesk_basic.crt** - MagicDesk形式ROMカートリッジ
+          - **c64jp_programs.d64** - サンプルプログラム集（D64ディスクイメージ）
+          
+          ## 使い方
+          
+          1. CRTファイルをVICEエミュレータまたは対応フラッシュカートリッジにロード
+          2. D64ファイルをディスクドライブ8にマウント
+          3. `LOAD"*",8,1` でプログラムを読み込み実行
+          
+          ## 含まれるプログラム
+          
+          - **HELLO** - 基本的な日本語表示デモ
+          - **HELLO_BITMAP** - ビットマップモード日本語表示
+          - **HELLO_RESOURCE** - 文字列リソース使用例
+          - **IME_TEST** - かな漢字変換IMEテスト
+          - **MODEM_TEST** - SwiftLink RS-232通信テスト
+          
+          詳細な使用方法は README.md および README-en.md をご参照ください。
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

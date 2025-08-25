@@ -1,0 +1,75 @@
+name: Build Check
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+        
+    - name: Install VICE emulator (for c1541)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y vice
+        
+    - name: Install Prog8 compiler
+      run: |
+        # Download and install prog8 compiler
+        wget https://github.com/irmen/prog8/releases/download/v11.4.1/prog8-v11.4.1-all.jar
+        sudo mkdir -p /opt/prog8
+        sudo mv prog8-v11.4.1-all.jar /opt/prog8/
+        
+        # Create wrapper script
+        sudo tee /usr/local/bin/prog8c << 'EOF'
+        #!/bin/bash
+        java -jar /opt/prog8/prog8-v11.4.1-all.jar "$@"
+        EOF
+        sudo chmod +x /usr/local/bin/prog8c
+        
+        # Install 64tass (included with prog8 but need separate binary)
+        wget https://github.com/irmen/prog8/releases/download/v11.4.1/64tass-v11.4.1-linux-x64.tar.gz
+        tar -xzf 64tass-v11.4.1-linux-x64.tar.gz
+        sudo mv 64tass /usr/local/bin/
+        sudo chmod +x /usr/local/bin/64tass
+        
+    - name: Test font conversion
+      run: make fonts
+      
+    - name: Test dictionary conversion
+      run: make dict
+      
+    - name: Test individual program builds
+      run: |
+        make TARGET=hello
+        make TARGET=hello_bitmap
+        make TARGET=hello_resource
+        make TARGET=ime_test
+        make TARGET=modem_test
+        
+    - name: Test D64 creation
+      run: make d64
+      
+    - name: Verify release files
+      run: |
+        make release-files
+        ls -la crt/kanji_magicdesk_basic.crt
+        ls -la prog8/build/c64jp_programs.d64
+        
+    - name: Build summary
+      run: |
+        echo "✅ Build completed successfully"
+        echo "📦 CRT size: $(stat -c%s crt/kanji_magicdesk_basic.crt) bytes"
+        echo "💾 D64 size: $(stat -c%s prog8/build/c64jp_programs.d64) bytes"
+        echo "🎯 Programs built: hello, hello_bitmap, hello_resource, ime_test, modem_test"
