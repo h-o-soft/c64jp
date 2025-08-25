@@ -1,0 +1,71 @@
+# C64開発関連の生成ファイル
+*.prg
+*.bin
+*.crt
+*.d64
+*.t64
+*.p00
+*.s00
+
+# アセンブラ生成ファイル
+# *.asm は除外しない（createcrt/kanji-magicdesk-basic.asm など手書きのソースがあるため）
+*.lst
+*.sym
+*.lab
+*.map
+*.vice-mon-list
+
+# prog8コンパイラ生成ファイル
+prog8/build/
+
+# Python生成ファイル
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+
+# フォント変換生成ファイル
+fontconv/*.bin
+fontconv/*.crt
+fontconv/*_merged_*.bin
+fontconv/verified_*.csv
+fontconv/*.txt
+fontconv/*.png
+fontconv/*.zip
+
+# 辞書変換生成ファイル
+dicconv/*.bin
+
+# CRTファイル生成ディレクトリ
+crt/*.crt
+
+# 文字列リソース生成ファイル
+stringresources/*.bin
+
+# 一時ファイル・バックアップ
+*~
+*.bak
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db
+
+# VICEエミュレータ設定
+*.vicerc
+*.ini
+
+# ログファイル
+*.log
+
+# OS固有
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Desktop.ini

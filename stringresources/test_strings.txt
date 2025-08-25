@@ -1,0 +1,9 @@
+0,"Hello"
+1,"漢字ですよ
+改行も出来ますよabc"
+2,"テスト"
+3,"こんにちは、世界！"
+4,"Commodore 64で日本語表示"
+6,"MagicDesk漢字ROM"
+7,"文字列リソースシステム"
+9,"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
