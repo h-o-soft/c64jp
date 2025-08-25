@@ -124,8 +124,8 @@ swiftlink {
             ora  #%00000001               ; DTR=1
             sta  p8v_rts_off_value        ; RTS無効時の値として保存
             sta  p8c_ACIA_COMMAND         ; まだ割り込みは無効
-            
-            cli                           ; 割り込み有効化
+
+            ; cli                           ; 割り込み有効化
         }}
         
         ; NMI割り込みを使用する場合
@@ -138,9 +138,13 @@ swiftlink {
                 lda  p8v_rts_off_value
                 ora  #%00001000           ; 受信割り込み有効（ビット3）
                 sta  p8c_ACIA_COMMAND
-                cli
+                ; cli
             }}
         }
+
+        %asm {{
+            cli                           ; 割り込み有効化
+        }}
     }
     
     ; デフォルト設定での簡易初期化（2400bps, 8N1, NMI使用）
