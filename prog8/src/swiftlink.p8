@@ -104,10 +104,25 @@ swiftlink {
         rts_off_value = 0
         
         %asm {{
+            ; 割り込みマスク全解除
+            lda $DD0D
+            lda #$7f
+            sta $DD0D
+
+            ; 元のNMIベクタを保存
+            lda  p8c_NMI_VECTOR
+            sta  p8v_old_nmi_vector
+            lda  p8c_NMI_VECTOR+1
+            sta  p8v_old_nmi_vector+1
+
             sei                           ; 割り込み無効化
-            
-            ; cc65準拠の初期化順序（動作確認済み）
-            
+
+            ; 割り込みベクタをダミーに設定
+            lda  #<p8b_swiftlink.p8s_nmi_handler.nmi_dummy
+            sta  p8c_NMI_VECTOR
+            lda  #>p8b_swiftlink.p8s_nmi_handler.nmi_dummy
+            sta  p8c_NMI_VECTOR+1
+
             ; 1. DTR無効化と割り込み無効化
             lda  #%00001010              ; DTR=0, 割り込み無効
             sta  p8c_ACIA_COMMAND
@@ -120,12 +135,19 @@ swiftlink {
             sta  p8c_ACIA_CONTROL
             
             ; 3. コマンドレジスタ設定（RTS無効値も保存）
+            lda  p8c_ACIA_STATUS
             lda  p8v_parity
             ora  #%00000001               ; DTR=1
             sta  p8v_rts_off_value        ; RTS無効時の値として保存
             sta  p8c_ACIA_COMMAND         ; まだ割り込みは無効
 
-            ; cli                           ; 割り込み有効化
+            ; 割り込みベクタを復元
+            lda  p8v_old_nmi_vector
+            sta  p8c_NMI_VECTOR
+            lda  p8v_old_nmi_vector+1
+            sta  p8c_NMI_VECTOR+1
+
+            cli                           ; 割り込み有効化
         }}
         
         ; NMI割り込みを使用する場合
@@ -138,13 +160,9 @@ swiftlink {
                 lda  p8v_rts_off_value
                 ora  #%00001000           ; 受信割り込み有効（ビット3）
                 sta  p8c_ACIA_COMMAND
-                ; cli
+                cli
             }}
         }
-
-        %asm {{
-            cli                           ; 割り込み有効化
-        }}
     }
     
     ; デフォルト設定での簡易初期化（2400bps, 8N1, NMI使用）
@@ -442,6 +460,9 @@ swiftlink {
             pla
             
             ; 割り込みから復帰
+            rti
+        
+        nmi_dummy:
             rti
         }}
     }
