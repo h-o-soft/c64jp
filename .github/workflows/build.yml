@@ -24,25 +24,22 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y vice
         
-    - name: Install Prog8 compiler
+    - name: Install Prog8 compiler and 64tass
       run: |
+        # Install 64tass from Ubuntu repositories
+        sudo apt-get install -y 64tass
+        
         # Download and install prog8 compiler
-        wget https://github.com/irmen/prog8/releases/download/v11.4.1/prog8-v11.4.1-all.jar
+        wget https://github.com/irmen/prog8/releases/download/v11.4.1/prog8c-11.4.1-all.jar
         sudo mkdir -p /opt/prog8
-        sudo mv prog8-v11.4.1-all.jar /opt/prog8/
+        sudo mv prog8c-11.4.1-all.jar /opt/prog8/
         
         # Create wrapper script
         sudo tee /usr/local/bin/prog8c << 'EOF'
         #!/bin/bash
-        java -jar /opt/prog8/prog8-v11.4.1-all.jar "$@"
+        java -jar /opt/prog8/prog8c-11.4.1-all.jar "$@"
         EOF
         sudo chmod +x /usr/local/bin/prog8c
-        
-        # Install 64tass (included with prog8 but need separate binary)
-        wget https://github.com/irmen/prog8/releases/download/v11.4.1/64tass-v11.4.1-linux-x64.tar.gz
-        tar -xzf 64tass-v11.4.1-linux-x64.tar.gz
-        sudo mv 64tass /usr/local/bin/
-        sudo chmod +x /usr/local/bin/64tass
         
     - name: Test font conversion
       run: make fonts
