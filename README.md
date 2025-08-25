@@ -60,7 +60,42 @@ MagicDesk形式のカートリッジ（最大1MB）に以下のデータを格�
 ### モデム通信（SwiftLink）
 ![SwiftLinkモデム通信](images/c64jp_modem.png)
 
-## クイックスタート
+## リリース版の使い方
+
+ビルド済みのバイナリを使ってすぐに試したい場合：
+
+### 1. リリースファイルのダウンロード
+[Releases](https://github.com/h-o-soft/c64jp/releases)ページから最新版をダウンロードしてください。
+- `kanji_magicdesk_basic.crt` - ROMカートリッジファイル
+- `c64jp_programs.d64` - サンプルプログラム集
+
+### 2. エミュレータでの実行
+```bash
+# VICEエミュレータの場合
+x64sc -cartcrt kanji_magicdesk_basic.crt -8 c64jp_programs.d64
+
+# カートリッジ装着後、D64をマウントしてプログラムを選択実行
+LOAD"$",8
+LIST
+
+# 実行したいプログラムを選んでロード・実行
+LOAD"HELLO",8,1
+RUN
+```
+
+### 3. 実機での使用
+1. **カートリッジの準備**: CRTファイルを対応フラッシュカートリッジ（EasyFlash3、Ultimate 64等）に書き込み
+2. **ディスクイメージの転送**: D64ファイルをSD2IECやUltimate等でマウント
+3. **プログラムの選択**: `LOAD"$",8` でディレクトリを表示
+4. **プログラムの実行**: `LOAD"プログラム名",8,1` でロードして `RUN`
+
+### サンプルプログラム一覧
+- `HELLO` - 基本的な日本語表示デモ
+- `HELLO BITMAP` - ビットマップモード表示
+- `IME TEST` - かな漢字変換デモ
+- `MODEM TEST` - SwiftLink通信テスト
+
+## クイックスタート（ソースからビルド）
 
 ### 1. リポジトリのクローン
 ```bash

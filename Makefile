@@ -319,8 +319,15 @@ d64: build-all $(BASIC_CRT)
 	@echo "Adding programs to disk image..."
 	@for target in $(RELEASE_TARGETS); do \
 		if [ -f "$(BUILD_DIR)/$$target.prg" ]; then \
-			echo "  Adding $$target.prg"; \
-			c1541 "$(D64_IMAGE)" -write "$(BUILD_DIR)/$$target.prg" "$$target"; \
+			case $$target in \
+				hello_bitmap) d64name="hello bitmap" ;; \
+				hello_resource) d64name="hello resource" ;; \
+				ime_test) d64name="ime test" ;; \
+				modem_test) d64name="modem test" ;; \
+				*) d64name="$$target" ;; \
+			esac; \
+			echo "  Adding $$target.prg as \"$$d64name\""; \
+			c1541 "$(D64_IMAGE)" -write "$(BUILD_DIR)/$$target.prg" "$$d64name"; \
 		else \
 			echo "  Warning: $$target.prg not found"; \
 		fi; \
