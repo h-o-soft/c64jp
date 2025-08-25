@@ -46,6 +46,20 @@ MagicDesk形式のカートリッジ（最大1MB）に以下のデータを格�
 - [VICE](https://vice-emu.sourceforge.io/)エミュレータ（推奨: x64sc）
 - または実機のCommodore 64 + MagicDesk対応カートリッジ（詳細は後述）
 
+## スクリーンショット
+
+### テキストモード表示
+![テキストモード日本語表示](images/c64jp_text.png)
+
+### ビットマップモード表示
+![ビットマップモード日本語表示](images/c64jp_bitmap.png)
+
+### かな漢字変換（IME）
+![かな漢字変換デモ](images/c64jp_ime.gif)
+
+### モデム通信（SwiftLink）
+![SwiftLinkモデム通信](images/c64jp_modem.png)
+
 ## クイックスタート
 
 ### 1. リポジトリのクローン

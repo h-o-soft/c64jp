@@ -46,6 +46,20 @@ General-purpose libraries:
 - [VICE](https://vice-emu.sourceforge.io/) emulator (recommended: x64sc)
 - Or real Commodore 64 + MagicDesk-compatible cartridge (details below)
 
+## Screenshots
+
+### Text Mode Display
+![Japanese text display in text mode](images/c64jp_text.png)
+
+### Bitmap Mode Display
+![Japanese text display in bitmap mode](images/c64jp_bitmap.png)
+
+### Kana-Kanji Conversion (IME)
+![Kana-Kanji conversion demo](images/c64jp_ime.gif)
+
+### Modem Communication (SwiftLink)
+![SwiftLink modem communication](images/c64jp_modem.png)
+
 ## Quick Start
 
 ### 1. Clone Repository
