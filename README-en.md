@@ -60,7 +60,42 @@ General-purpose libraries:
 ### Modem Communication (SwiftLink)
 ![SwiftLink modem communication](images/c64jp_modem.png)
 
-## Quick Start
+## Using Pre-built Releases
+
+To quickly try with pre-built binaries:
+
+### 1. Download Release Files
+Download the latest version from the [Releases](https://github.com/h-o-soft/c64jp/releases) page:
+- `kanji_magicdesk_basic.crt` - ROM cartridge file
+- `c64jp_programs.d64` - Sample programs disk image
+
+### 2. Running on Emulator
+```bash
+# For VICE emulator
+x64sc -cartcrt kanji_magicdesk_basic.crt -8 c64jp_programs.d64
+
+# After cartridge is loaded, mount D64 and select program
+LOAD"$",8
+LIST
+
+# Load and run desired program
+LOAD"HELLO",8,1
+RUN
+```
+
+### 3. Using on Real Hardware
+1. **Prepare Cartridge**: Write CRT file to compatible flash cartridge (EasyFlash3, Ultimate 64, etc.)
+2. **Transfer Disk Image**: Mount D64 file via SD2IEC, Ultimate, or similar
+3. **Select Program**: Use `LOAD"$",8` to view directory
+4. **Run Programs**: Load with `LOAD"program_name",8,1` and `RUN`
+
+### Sample Programs
+- `HELLO` - Basic Japanese display demo
+- `HELLO BITMAP` - Bitmap mode display
+- `IME TEST` - Kana-Kanji conversion demo
+- `MODEM TEST` - SwiftLink communication test
+
+## Quick Start (Build from Source)
 
 ### 1. Clone Repository
 ```bash
