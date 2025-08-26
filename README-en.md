@@ -66,13 +66,13 @@ To quickly try with pre-built binaries:
 
 ### 1. Download Release Files
 Download the latest version from the [Releases](https://github.com/h-o-soft/c64jp/releases) page:
-- `kanji_magicdesk_basic.crt` - ROM cartridge file
+- `c64jpkanji.crt` - ROM cartridge file
 - `c64jp_programs.d64` - Sample programs disk image
 
 ### 2. Running on Emulator
 ```bash
 # For VICE emulator
-x64sc -cartcrt kanji_magicdesk_basic.crt -8 c64jp_programs.d64
+x64sc -cartcrt c64jpkanji.crt -8 c64jp_programs.d64
 
 # After cartridge is loaded, mount D64 and select program
 LOAD"$",8
@@ -306,27 +306,7 @@ make run
 ## License
 
 ### Project Code
-MIT License
-
-Copyright (c) 2025 H.O SOFT Inc.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+MIT License - See [LICENSE](LICENSE) file for details.
 
 ### Fonts Used
 - **Misaki Font**: Created by Namu Kadoma
@@ -351,6 +331,20 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 ## Author
 
 Hiroshi OGINO / H.O SOFT Inc.
+
+## TODO / Future Plans
+
+### Library Improvements
+- **Library Optimization**: Clean up complex and redundant AI-generated code to improve memory usage and speed
+- **Assembler Call Support**: Make libraries directly callable from assembler
+- **Library Deployment from ROM**: Store jtxt and ime in cartridge ROM and deploy to RAM at $A000-$BFFF etc. on startup to free up application memory (needs consideration)
+
+### Kana-Kanji Conversion Enhancement
+- **Dictionary Improvement**: Enhance dictionary data for more accurate conversion (especially adding proper nouns)
+
+### Application Development
+- **Simple Text Editor**: Create a text editor with Japanese input support
+- **Communication App**: Simple support for escape sequences
 
 ## Acknowledgments
 

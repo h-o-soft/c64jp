@@ -278,8 +278,8 @@ def create_magicdesk_crt(base_file, font_file, output_crt, jisx0201_file=None, s
 
 def main():
     parser = argparse.ArgumentParser(description='C64 Kanji ROM Cartridge Creation')
-    parser.add_argument('--output', '-o', default='kanji_magicdesk_basic.crt',
-                      help='Output CRT filename (default: kanji_magicdesk_basic.crt)')
+    parser.add_argument('--output', '-o', default='c64jpkanji.crt',
+                      help='Output CRT filename (default: c64jpkanji.crt)')
     parser.add_argument('--font-file', default='../fontconv/font_misaki_gothic.bin',
                       help='Full-width font file (default: font_misaki_gothic.bin)')
     parser.add_argument('--jisx0201-file', default='../fontconv/font_jisx0201.bin',

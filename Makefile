@@ -36,8 +36,8 @@ EMU_EXTRA_OPTS ?=
 
 # CRT files
 CRT_DIR := $(PROJECT_ROOT)/crt
-BASIC_CRT := $(CRT_DIR)/kanji_magicdesk_basic.crt
-STRINGS_CRT := $(CRT_DIR)/kanji_magicdesk_basic_with_strings.crt
+BASIC_CRT := $(CRT_DIR)/c64jpkanji.crt
+STRINGS_CRT := $(CRT_DIR)/c64jpkanji_with_strings.crt
 
 # Derived files
 P8_FILE := $(SRC_DIR)/$(TARGET).p8
