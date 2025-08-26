@@ -306,27 +306,7 @@ make run
 ## ライセンス
 
 ### 本プロジェクトのコード
-MITライセンス
-
-Copyright (c) 2025 H.O SOFT Inc.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+MITライセンス - 詳細は[LICENSE](LICENSE)ファイルを参照してください。
 
 ### 使用しているフォント
 - **美咲フォント**: 門真なむ氏作成
@@ -351,6 +331,20 @@ SOFTWARE.
 ## 作者
 
 Hiroshi OGINO / H.O SOFT Inc.
+
+## TODO / 今後の予定
+
+### ライブラリの改善
+- **ライブラリの最適化**: AIが書いた複雑で冗長なコードを整理しメモリ使用量と速度を改善
+- **アセンブラ呼び出し対応**: ライブラリをアセンブラから直接利用可能にする
+- **ROMからのライブラリ展開**: jtxt及びimeをカートリッジROMに格納し、起動時に$A000〜$BFFF等のRAMに展開してライブラリとして利用可能にすることでアプリケーションメモリを解放(要検討項目)
+
+### かな漢字変換の強化
+- **辞書の改良**: より高精度な変換のための辞書データ強化(特に固有名詞の追加)
+
+### アプリケーション開発
+- **簡易テキストエディタ**: 日本語入力対応のテキストエディタ作成
+- **通信アプリ**: エスケープシーケンスの簡易的な対応
 
 ## 謝辞
 
