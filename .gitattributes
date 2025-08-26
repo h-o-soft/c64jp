@@ -1,0 +1,11 @@
+*.p8 linguist-detectable=false
+
+fontconv/*.py linguist-vendored=false
+dicconv/*.py linguist-vendored=false
+createcrt/*.py linguist-vendored=false
+stringresources/*.py linguist-vendored=false
+
+*.prg linguist-generated=true
+*.crt linguist-generated=true
+*.d64 linguist-generated=true
+prog8/build/* linguist-generated=true
