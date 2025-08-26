@@ -66,12 +66,12 @@ jobs:
     - name: Verify release files
       run: |
         make release-files
-        ls -la crt/kanji_magicdesk_basic.crt
+        ls -la crt/c64jpkanji.crt
         ls -la prog8/build/c64jp_programs.d64
         
     - name: Build summary
       run: |
         echo "✅ Build completed successfully"
-        echo "📦 CRT size: $(stat -c%s crt/kanji_magicdesk_basic.crt) bytes"
+        echo "📦 CRT size: $(stat -c%s crt/c64jpkanji.crt) bytes"
         echo "💾 D64 size: $(stat -c%s prog8/build/c64jp_programs.d64) bytes"
         echo "🎯 Programs built: hello, hello_bitmap, hello_resource, ime_test, modem_test"

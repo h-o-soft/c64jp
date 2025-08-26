@@ -46,7 +46,7 @@ python create_crt.py --string-resource-file ../stringresources/test_strings.txt
 
 | オプション | 説明 | デフォルト値 |
 |-----------|------|-------------|
-| `-o, --output` | 出力CRTファイル名 | `kanji_magicdesk_basic.crt` |
+| `-o, --output` | 出力CRTファイル名 | `c64jpkanji.crt` |
 | `--font-file` | 全角フォントファイルパス | `../fontconv/font_misaki_gothic.bin` |
 | `--jisx0201-file` | 半角フォントファイルパス | `../fontconv/font_jisx0201.bin` |
 | `--dictionary-file` | 辞書ファイルパス | なし（オプション） |
@@ -141,10 +141,10 @@ make TARGET=hello_resource run-strings
 
 ```bash
 # VICEエミュレータで実行
-x64sc -cartcrt kanji_magicdesk_basic.crt
+x64sc -cartcrt c64jpkanji.crt
 
 # 追加プログラムと共に実行
-x64sc -cartcrt kanji_magicdesk_basic.crt prog8/build/hello.prg
+x64sc -cartcrt c64jpkanji.crt prog8/build/hello.prg
 ```
 
 ## ハードウェア互換性

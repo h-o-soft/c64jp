@@ -46,7 +46,7 @@ python create_crt.py --string-resource-file ../stringresources/test_strings.txt
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `-o, --output` | Output CRT filename | `kanji_magicdesk_basic.crt` |
+| `-o, --output` | Output CRT filename | `c64jpkanji.crt` |
 | `--font-file` | Full-width font file path | `../fontconv/font_misaki_gothic.bin` |
 | `--jisx0201-file` | Half-width font file path | `../fontconv/font_jisx0201.bin` |
 | `--dictionary-file` | Dictionary file path | None (optional) |
@@ -141,10 +141,10 @@ Test the generated cartridge with VICE:
 
 ```bash
 # Run in VICE emulator
-x64sc -cartcrt kanji_magicdesk_basic.crt
+x64sc -cartcrt c64jpkanji.crt
 
 # With additional program
-x64sc -cartcrt kanji_magicdesk_basic.crt prog8/build/hello.prg
+x64sc -cartcrt c64jpkanji.crt prog8/build/hello.prg
 ```
 
 ## Hardware Compatibility

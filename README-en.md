@@ -66,13 +66,13 @@ To quickly try with pre-built binaries:
 
 ### 1. Download Release Files
 Download the latest version from the [Releases](https://github.com/h-o-soft/c64jp/releases) page:
-- `kanji_magicdesk_basic.crt` - ROM cartridge file
+- `c64jpkanji.crt` - ROM cartridge file
 - `c64jp_programs.d64` - Sample programs disk image
 
 ### 2. Running on Emulator
 ```bash
 # For VICE emulator
-x64sc -cartcrt kanji_magicdesk_basic.crt -8 c64jp_programs.d64
+x64sc -cartcrt c64jpkanji.crt -8 c64jp_programs.d64
 
 # After cartridge is loaded, mount D64 and select program
 LOAD"$",8

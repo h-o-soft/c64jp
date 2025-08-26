@@ -66,13 +66,13 @@ MagicDesk形式のカートリッジ（最大1MB）に以下のデータを格�
 
 ### 1. リリースファイルのダウンロード
 [Releases](https://github.com/h-o-soft/c64jp/releases)ページから最新版をダウンロードしてください。
-- `kanji_magicdesk_basic.crt` - ROMカートリッジファイル
+- `c64jpkanji.crt` - ROMカートリッジファイル
 - `c64jp_programs.d64` - サンプルプログラム集
 
 ### 2. エミュレータでの実行
 ```bash
 # VICEエミュレータの場合
-x64sc -cartcrt kanji_magicdesk_basic.crt -8 c64jp_programs.d64
+x64sc -cartcrt c64jpkanji.crt -8 c64jp_programs.d64
 
 # カートリッジ装着後、D64をマウントしてプログラムを選択実行
 LOAD"$",8
