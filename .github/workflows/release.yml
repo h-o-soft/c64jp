@@ -85,6 +85,9 @@ jobs:
           
           Commodore 64で日本語表示とかな漢字変換を実現するプロジェクトのリリースです。
           
+          詳細な使用方法は README.md および README-en.md をご参照ください。
+          For detailed instructions, please refer to README.md and README-en.md.
+          
           ## ファイル構成
           
           - **c64jp-${{ steps.get_version.outputs.VERSION }}.zip** - 完全パッケージ（CRT + D64 + ドキュメント）
@@ -95,17 +98,22 @@ jobs:
           
           1. CRTファイルをVICEエミュレータまたは対応フラッシュカートリッジにロード
           2. D64ファイルをディスクドライブ8にマウント
-          3. `LOAD"*",8,1` でプログラムを読み込み実行
+          3. `LOAD"$",8` でディレクトリ表示し、`LOAD"プログラム名",8,1` で実行
           
           ## 含まれるプログラム
           
           - **HELLO** - 基本的な日本語表示デモ
-          - **HELLO_BITMAP** - ビットマップモード日本語表示
-          - **HELLO_RESOURCE** - 文字列リソース使用例
-          - **IME_TEST** - かな漢字変換IMEテスト
-          - **MODEM_TEST** - SwiftLink RS-232通信テスト
+          - **HELLO BITMAP** - ビットマップモード日本語表示
+          - **HELLO RESOURCE** - 文字列リソース使用例
+          - **IME TEST** - かな漢字変換IMEテスト
+          - **MODEM TEST** - SwiftLink RS-232通信テスト
           
-          詳細な使用方法は README.md および README-en.md をご参照ください。
+          ---
+          
+          ## What's Changed
+          
+          <!-- ここに自動生成された変更履歴が追加されます -->
+        generate_release_notes: true
         draft: false
         prerelease: false
       env:
