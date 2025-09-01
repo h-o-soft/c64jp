@@ -24,8 +24,8 @@ main {
         ; IME初期化
         ime.init()
         
-        ; ライブラリ初期化（文字範囲64-254、190文字使用、ビットマップモード）
-        jtxt.init(64, 190, jtxt.BITMAP_MODE)
+        ; ライブラリ初期化（ビットマップモード）
+        jtxt.init(jtxt.BITMAP_MODE)
         
         ; 画面設定
         jtxt.bcolor(5, 0)  ; 緑文字、黒背景（ターミナル風）

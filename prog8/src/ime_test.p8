@@ -14,8 +14,8 @@ main {
         ; IME初期化
         ime.init()
         
-        ; jtxtライブラリ初期化（文字範囲64-254、190文字使用、ビットマップモード）
-        jtxt.init(64, 190, jtxt.BITMAP_MODE)
+        ; jtxtライブラリ初期化（ビットマップモード）
+        jtxt.init(jtxt.BITMAP_MODE)
 
         ; タイトル表示
         show_title()

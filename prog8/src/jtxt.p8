@@ -54,12 +54,9 @@ jtxt {
     ubyte bitmap_bottom_row = 24        ; 描画終了行（デフォルト: 24）
     bool bitmap_window_enabled = false ; 行範囲制御有効フラグ
     
-    ; ハードウェア初期化（文字範囲・モードも同時設定）
-    sub init(ubyte start_char, ubyte char_count, ubyte mode) {
-        ; 文字範囲設定
-        set_range(start_char, char_count)
-        
-        ; 表示モード設定
+    ; ハードウェア初期化（モード設定のみ、文字範囲はデフォルトを使用）
+    sub init(ubyte mode) {
+        ; 表示モード設定（chr_start/chr_count はデフォルト値を使用）
         set_mode(mode)
         
         ; MagicDeskをバンク0に設定
@@ -223,14 +220,10 @@ jtxt {
         current_color = color & 15  ; 下位4ビットのみ有効
     }
     
-    ; 背景色設定
-    sub set_bgcolor(ubyte color) {
-        @($D021) = color & 15  ; 背景色レジスタに設定
-    }
-    
-    ; ボーダー色設定
-    sub set_bordercolor(ubyte color) {
-        @($D020) = color & 15  ; ボーダー色レジスタに設定
+    ; 背景色/ボーダー色設定（2引数に統合）
+    sub set_bgcolor(ubyte bgcolor, ubyte bordercolor) {
+        @($D021) = bgcolor & 15  ; 背景色
+        @($D020) = bordercolor & 15  ; ボーダー色
     }
     
     ; 表示モード切り替え
