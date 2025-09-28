@@ -1,5 +1,6 @@
 #include "screen.h"
 #include <c64.h>
+#include <cbm.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -19,8 +20,6 @@ static const uint8_t normal_bg_color = 6;  // Blue background
 static const uint8_t status_fg_color = 0;  // Black text
 static const uint8_t status_bg_color = 1;  // White background
 static bool sjis_lead_pending = false;
-
-extern uint8_t kernal_getin(void);
 
 // MagicDesk cartridge detection
 static bool check_magicdesk_cartridge(void)
@@ -207,7 +206,7 @@ static uint8_t translate_key(uint8_t c)
 uint16_t screen_getchar(uint16_t timeout_cs)
 {
     (void)timeout_cs;
-    uint8_t value = kernal_getin();
+    uint8_t value = cbm_k_getin();
     if (value == 0)
         return 0;
     uint8_t key = translate_key(value);

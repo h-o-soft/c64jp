@@ -31,7 +31,6 @@ TARGET = qe
 
 # Source files
 C_SOURCES = qe.c $(LIB_DIR)/screen.c
-ASM_SOURCES = $(LIB_DIR)/kernal_getin.s
 TEST_SOURCES = fio_test.c
 JTXT_SOURCES = ../../src/jtxt.c ../../src/jtxt_charset.c ../../src/jtxt_bitmap.c ../../src/jtxt_resource.c
 
@@ -41,10 +40,9 @@ endif
 
 # Object files
 C_OBJECTS = $(C_SOURCES:.c=.o)
-ASM_OBJECTS = $(ASM_SOURCES:.s=.o)
 JTXT_OBJECTS = $(JTXT_SOURCES:.c=.o)
 IME_OBJECTS = $(IME_SOURCES:.c=.o)
-OBJECTS = $(C_OBJECTS) $(ASM_OBJECTS) $(JTXT_OBJECTS) $(IME_OBJECTS)
+OBJECTS = $(C_OBJECTS) $(JTXT_OBJECTS) $(IME_OBJECTS)
 
 # Main targets
 .PHONY: all clean test install qe-run
