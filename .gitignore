@@ -18,6 +18,13 @@
 # prog8コンパイラ生成ファイル
 prog8/build/
 
+# C/llvm-mosコンパイラ生成ファイル
+c/build/
+*.o
+*.obj
+*.elf
+*.hex
+
 # Python生成ファイル
 __pycache__/
 *.py[cod]

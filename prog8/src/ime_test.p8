@@ -87,8 +87,8 @@ main {
                 ime.IME_EVENT_DEACTIVATED -> {
                     ; IMEが無効化された（Commodore+Spaceで）
                     ; カーソル位置を保存
-                    ubyte saved_x = jtxt.bitmap_x
-                    ubyte saved_y = jtxt.bitmap_y
+                    ubyte saved_x = jtxt.cursor_x
+                    ubyte saved_y = jtxt.cursor_y
                     
                     ; 最下行（24行目）をクリア
                     jtxt.bwindow_disable()  ; 一時的に制限解除
@@ -111,10 +111,10 @@ main {
                     when passthrough_key {
                         20 -> {  ; BackSpace
                             ; 1文字戻る（簡易実装）
-                            if jtxt.bitmap_x > 0 {
-                                jtxt.bitmap_x--
+                            if jtxt.cursor_x > 0 {
+                                jtxt.cursor_x--
                                 jtxt.bputc(32)  ; スペースで消去
-                                jtxt.bitmap_x--
+                                jtxt.cursor_x--
                             }
                         }
                         13 -> {  ; Return
@@ -123,24 +123,26 @@ main {
                     }
                 }
                 ime.IME_EVENT_NONE -> {
-                    ; IME無効時の通常キー処理
-                    ubyte key = cbm.GETIN2()
-                    
-                    if key != 0 {
-                        when key {
-                            27 -> {  ; ESC - 終了
-                                exit_requested = true
-                            }
-                            8, 20 -> {  ; BS/DEL
-                                jtxt.bputc(8)
-                            }
-                            13 -> {  ; RETURN
-                                jtxt.bputc(13)
-                            }
-                            else -> {
-                                ; 直接文字出力
-                                if key >= 32 and key <= 126 {
-                                    jtxt.bputc(key)
+                    ; IME無効時のみ通常キー処理（競合状態回避）
+                    if not ime.is_ime_active() {
+                        ubyte key = cbm.GETIN2()
+
+                        if key != 0 {
+                            when key {
+                                27 -> {  ; ESC - 終了
+                                    exit_requested = true
+                                }
+                                8, 20 -> {  ; BS/DEL
+                                    jtxt.bputc(8)
+                                }
+                                13 -> {  ; RETURN
+                                    jtxt.bputc(13)
+                                }
+                                else -> {
+                                    ; 直接文字出力
+                                    if key >= 32 and key <= 126 {
+                                        jtxt.bputc(key)
+                                    }
                                 }
                             }
                         }

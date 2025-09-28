@@ -9,6 +9,9 @@ main {
     sub start() {
         ; 日本語テキストライブラリ初期化（テキストモード）
         jtxt.init(jtxt.TEXT_MODE)
+        jtxt.bwindow(0, 24);
+        jtxt.bwindow_disable();
+        jtxt.bwindow_enable();
         
         ; 画面クリアと初期設定
         jtxt.cls()
