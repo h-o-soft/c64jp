@@ -261,8 +261,7 @@ ime {
     ; ブロッキング型IME用変数
     ubyte saved_cursor_x               ; process開始時のカーソルX位置
     ubyte saved_cursor_y               ; process開始時のカーソルY位置
-    ubyte saved_fg_color               ; process開始時のfg色
-    ubyte saved_bg_color               ; process開始時のbg色
+    ubyte saved_color                  ; process開始時のテキスト色(fg & bg)
 
     ubyte passthrough_key              ; パススルーするキーコード
     
@@ -2417,15 +2416,14 @@ ime {
     }
 
     sub backup_cursor() {
-        saved_cursor_x = jtxt.bitmap_x
-        saved_cursor_y = jtxt.bitmap_y
-        saved_fg_color = jtxt.bitmap_fg_color
-        saved_bg_color = jtxt.bitmap_bg_color
+        saved_cursor_x = jtxt.cursor_x
+        saved_cursor_y = jtxt.cursor_y
+        saved_color = jtxt.bitmap_color
     }
 
     sub restore_cursor() {
         jtxt.blocate(saved_cursor_x, saved_cursor_y)
-        jtxt.bcolor(saved_fg_color, saved_bg_color)
+        jtxt.bcolor(saved_color >> 4, saved_color & 15)
     }
     
     ; ノンブロッキングIME処理（メイン関数）

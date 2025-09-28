@@ -37,29 +37,26 @@ jtxt {
     uword color_pos = $D800             ; 現在のカラーRAM位置（screen_posと対応）
     ubyte current_color = 1             ; 現在の文字色（デフォルト：白）
     const uword SCREEN_END = SCREEN_RAM + 999  ; 画面最終位置（999 = 24*40+39）
-    
-    ; Shift-JISステート管理
-    ubyte sjis_state = 0                ; 0=通常, 1=Shift-JIS 2バイト目待ち
-    ubyte sjis_first_byte = 0           ; Shift-JIS 1バイト目の保存
+
+    uword @zp define_addr               ; フォント定義アドレス
+
+    ; Shift-JISステート管理（sjis_first_byte!=0 で2バイト目待ちを表す）
+    ubyte sjis_first_byte = 0           ; 0=通常, 非0=Shift-JIS 1バイト目保存
     
     ; ビットマップモード関連変数
     ubyte display_mode = TEXT_MODE      ; 現在の表示モード
-    ubyte bitmap_x = 0                  ; ビットマップ X座標（文字単位 0-39）
-    ubyte bitmap_y = 0                  ; ビットマップ Y座標（文字単位 0-24）
-    ubyte bitmap_fg_color = 1           ; ビットマップ前景色
-    ubyte bitmap_bg_color = 0           ; ビットマップ背景色
+    ubyte cursor_x = 0                  ; ビットマップ X座標（文字単位 0-39）
+    ubyte cursor_y = 0                  ; ビットマップ Y座標（文字単位 0-24）
+    ubyte bitmap_color = (1 << 4) | 0   ; ビットマップ色
     
     ; ビットマップ行範囲制御変数
     ubyte bitmap_top_row = 0            ; 描画開始行（デフォルト: 0）
     ubyte bitmap_bottom_row = 24        ; 描画終了行（デフォルト: 24）
-    bool bitmap_window_enabled = false ; 行範囲制御有効フラグ
+    bool bitmap_window_enabled = false  ; ビットマップ行範囲制御有効フラグ
     
-    ; ハードウェア初期化（文字範囲・モードも同時設定）
-    sub init(ubyte start_char, ubyte char_count, ubyte mode) {
-        ; 文字範囲設定
-        set_range(start_char, char_count)
-        
-        ; 表示モード設定
+    ; ハードウェア初期化（モード設定のみ、文字範囲はデフォルトを使用）
+    sub init(ubyte mode) {
+        ; 表示モード設定（chr_start/chr_count はデフォルト値を使用）
         set_mode(mode)
         
         ; MagicDeskをバンク0に設定
@@ -98,53 +95,38 @@ jtxt {
         color_pos = $D800                  ; カラーRAM左上から開始
     }
     
-    ; ライブラリ使用文字のクリア（最適化：範囲限定）
+    ; 画面クリア（全領域を無条件にスペースで埋める）
     sub cls() {
-        ; 画面上のライブラリ文字をクリア（最適化：1回のループ）
-        uword screen_ptr = SCREEN_RAM
-        uword screen_end = SCREEN_RAM + 1000    ; 25行×40文字
-        ubyte char_end = chr_start + chr_count
+        sys.memset(SCREEN_RAM, 1000, 32)  ; 25行×40文字をスペースでクリア
         
-        while screen_ptr < screen_end {
-            ubyte ch = @(screen_ptr)
-            if ch >= chr_start and ch < char_end {
-                @(screen_ptr) = 32  ; スペース文字（C64スクリーンコード）
-            }
-            screen_ptr++
-        }
-        
-        ; インデックス初期化（最適化：代入のみ）
+        ; インデックス初期化
         current_index = chr_start
-        locate(0, 0)  ; 画面左上に位置設定（アドレス事前計算）
+        locate(0, 0)
         
         ; Shift-JISステートもクリア
-        sjis_state = 0
         sjis_first_byte = 0
     }
     
-    ; カーソル位置設定（最適化：アドレス事前計算）
+    ; カーソル位置設定
     sub locate(ubyte x, ubyte y) {
-        uword offset = (y as uword) * CHAR_WIDTH + x as uword
-        screen_pos = SCREEN_RAM + offset
-        color_pos = $D800 + offset
+        screen_pos = SCREEN_RAM + (y as uword) * CHAR_WIDTH + x as uword
+        color_pos = screen_pos + ($D800 - SCREEN_RAM)
     }
     
     ; 1文字出力（txt.putc互換、Shift-JISステートフル処理）
     sub putc(ubyte char_code) {
-        ; Shift-JIS 2バイト目待ち状態の処理
-        if sjis_state == 1 {
+        ; Shift-JIS 2バイト目待ち状態の処理（sjis_first_byte!=0）
+        if sjis_first_byte != 0 {
             ; 2バイト目として有効な範囲チェック
             if (char_code >= $40 and char_code <= $7E) or (char_code >= $80 and char_code <= $FC) {
                 ; Shift-JIS文字として処理
                 uword sjis_code = (sjis_first_byte as uword << 8) | char_code as uword
                 putc_internal(sjis_code)
-                sjis_state = 0
                 sjis_first_byte = 0
                 return
             } else {
                 ; 無効な2バイト目の場合、1バイト目を単独で出力してリセット
                 putc_internal(sjis_first_byte as uword)
-                sjis_state = 0
                 sjis_first_byte = 0
                 ; そして現在の文字を処理続行
             }
@@ -153,7 +135,6 @@ jtxt {
         ; Shift-JIS 1バイト目判定
         if (char_code >= $81 and char_code <= $9F) or (char_code >= $E0 and char_code <= $FC) {
             ; Shift-JIS 1バイト目として保存
-            sjis_state = 1
             sjis_first_byte = char_code
             return
         }
@@ -193,44 +174,63 @@ jtxt {
         }
     }
     
-    ; 文字列出力（putcを使用してステートフル処理）
+    ; 文字列出力
     sub puts(uword addr) {
-        uword ptr = addr
-        
-        while @(ptr) != 0 {
-            putc(@(ptr))
-            ptr++
-        }
+        %asm {{
+-
+            ldy  #0
+            lda  (p8v_addr),y
+            cmp  #0
+            beq  _puts_done
+            jsr  p8b_jtxt.p8s_putc
+            inc  p8v_addr
+            bne  +
+            inc  p8v_addr+1
++
+            jmp  -
+_puts_done
+        }}
     }
     
     ; 改行処理
+    ; ※単純にx=0、y++してlocateした方がいいかも
     sub newline() {
         ; 現在の画面位置から画面先頭アドレスを引いて相対位置を取得
-        uword relative_pos = screen_pos - SCREEN_RAM
+        screen_pos -= SCREEN_RAM
         ; 40で割って現在行を求める
-        uword current_row = relative_pos / 40
-        if current_row < 24 {
-            current_row++
+        screen_pos /= 40
+        if screen_pos < 24 {
+            screen_pos++
         }
-        current_row = current_row * 40
+        screen_pos *= 40
         ; 次の行の先頭アドレスを計算
-        screen_pos = SCREEN_RAM + current_row
-        color_pos = $D800 + current_row
+        screen_pos += SCREEN_RAM
+        color_pos = screen_pos + ($D800 - SCREEN_RAM)
     }
 
     ; 文字色設定（最適化：単純代入）
-    sub set_color(ubyte color) {
-        current_color = color & 15  ; 下位4ビットのみ有効
+    asmsub set_color(ubyte color @ A) {
+        ; current_color = color & 15  ; 下位4ビットのみ有効
+        %asm {{
+            and  #15
+            sta  p8b_jtxt.p8v_current_color
+            rts
+        }}
     }
     
-    ; 背景色設定
-    sub set_bgcolor(ubyte color) {
-        @($D021) = color & 15  ; 背景色レジスタに設定
-    }
-    
-    ; ボーダー色設定
-    sub set_bordercolor(ubyte color) {
-        @($D020) = color & 15  ; ボーダー色レジスタに設定
+    ; 背景色/ボーダー色設定
+    asmsub set_bgcolor(ubyte bgcolor @ A, ubyte bordercolor @ Y) {
+        %asm {{
+            ; 背景色
+            and  #15
+            sta  $d021
+
+            ; ボーダー色
+            tya
+            and  #15
+            sta  $d020
+            rts
+        }}
     }
     
     ; 表示モード切り替え
@@ -252,69 +252,72 @@ jtxt {
             @($D011) = @($D011) & %11011111  ; BMM=0 (ビットマップモード無効)
             
             ; VICバンク0に戻す（$0000-$3FFF）
-            @($DD00) = (@($DD00) & %11111100) | %00000011  ; VICバンク0選択
-            
-            ubyte vic_reg = @($D018)
-            vic_reg &= %11110000
-            vic_reg |= %00001100              ; キャラクタRAM=$3000
-            @($D018) = vic_reg
+            @($DD00) = (@($DD00) & %11111100) | %00000011   ; VICバンク1選択
+
+            @($D018) = (@($D018) & %11110000) | %00001100   ; キャラクタRAM=$3000
         }
     }
     
     ; ビットマップ画面クリア
     sub bcls() {
-        if bitmap_window_enabled {
-            ; 行範囲制御が有効な場合、指定範囲のみクリア
-            ubyte row
-            for row in bitmap_top_row to bitmap_bottom_row {
-                ; 各行のビットマップデータをクリア（1行は320バイト）
-                uword row_addr = BITMAP_BASE + (row as uword) * 320
-                sys.memset(row_addr, 320, 0)
-                
-                ; 各行のカラー情報をクリア
-                uword color_row_addr = BITMAP_SCREEN_RAM + (row as uword) * 40
-                sys.memset(color_row_addr, 40, (bitmap_fg_color << 4) | bitmap_bg_color)
-            }
-            
-            ; カーソル位置を範囲の開始位置に設定
-            bitmap_x = 0
-            bitmap_y = bitmap_top_row
-        } else {
-            ; 行範囲制御が無効な場合、全画面クリア
-            sys.memset(BITMAP_BASE, 8000, 0)
-            sys.memset(BITMAP_SCREEN_RAM, 1000, (bitmap_fg_color << 4) | bitmap_bg_color)
-            
-            ; ビットマップ座標初期化
-            bitmap_x = 0
-            bitmap_y = 0
+        ; 行範囲制御が有効な場合、指定範囲のみクリア
+        ubyte row
+        cx16.r2 = BITMAP_BASE + (bitmap_top_row as uword) * 320
+        cx16.r3 = BITMAP_SCREEN_RAM + (bitmap_top_row as uword) * 40
+        for row in bitmap_top_row to bitmap_bottom_row {
+            ; 各行のビットマップデータをクリア（1行は320バイト）
+            sys.memset(cx16.r2, 320, 0)
+            cx16.r2 += 320
+
+            ; 各行のカラー情報をクリア
+            sys.memset(cx16.r3, 40, bitmap_color)
+            cx16.r3 += 40
         }
         
+        ; カーソル位置を範囲の開始位置に設定
+        cursor_x = 0
+        cursor_y = bitmap_top_row
+        
         ; Shift-JISステートもクリア
-        sjis_state = 0
         sjis_first_byte = 0
     }
     
     ; ビットマップ座標設定
-    sub blocate(ubyte x, ubyte y) {
-        bitmap_x = x
-        bitmap_y = y
+    asmsub blocate(ubyte x @ A, ubyte y @ Y) {
+        %asm {{
+            sta  p8b_jtxt.p8v_cursor_x
+            sty  p8b_jtxt.p8v_cursor_y
+            rts
+        }}
     }
     
     ; ビットマップ色設定
-    sub bcolor(ubyte fg, ubyte bg) {
-        bitmap_fg_color = fg & 15
-        bitmap_bg_color = bg & 15
+    asmsub bcolor(ubyte fg @ A, ubyte bg @ Y) clobbers(A) {
+        %asm {{
+            sty  cx16.r2
+            and  #15
+            asl  a
+            asl  a
+            asl  a
+            asl  a
+            ora  cx16.r2
+            sta  p8b_jtxt.p8v_bitmap_color
+            rts
+        }}
     }
     
     ; ビットマップ行範囲設定
-    sub bwindow(ubyte top_row, ubyte bottom_row) {
-        if top_row <= bottom_row and bottom_row <= 24 {
-            bitmap_top_row = top_row
-            bitmap_bottom_row = bottom_row
-            bitmap_window_enabled = true
-        }
+    asmsub bwindow(ubyte top_row @ A, ubyte bottom_row @ Y) {
+        ; ignore top_row <= bottom_row and bottom_row <= 24
+        ; if top_row <= bottom_row and bottom_row <= 24 {
+        %asm {{
+            sta  p8b_jtxt.p8v_bitmap_top_row
+            sty  p8b_jtxt.p8v_bitmap_bottom_row
+            rts
+        }}
+        ; }
     }
-    
+
     ; ビットマップ行範囲制御無効化
     sub bwindow_disable() {
         bitmap_window_enabled = false
@@ -327,47 +330,37 @@ jtxt {
     
     ; ビットマップモード改行処理
     sub bnewline() {
-        bitmap_x = 0
+        cursor_x = 0
         
-        if bitmap_window_enabled {
-            ; 行範囲制御有効時
-            if bitmap_y >= bitmap_bottom_row {
-                ; 最下行の場合、スクロール
+        ; 行範囲制御有効時
+        if cursor_y >= bitmap_bottom_row {
+            ; 最下行の場合、スクロール(bitmap_window_enabled=trueの場合)
+            if bitmap_window_enabled {
                 bscroll_up()
-                bitmap_y = bitmap_bottom_row
-            } else {
-                bitmap_y++
             }
+            cursor_y = bitmap_bottom_row
         } else {
-            ; 行範囲制御無効時
-            if bitmap_y >= 24 {
-                ; 24行目で止める（スクロールしない）
-                bitmap_y = 24
-            } else {
-                bitmap_y++
-            }
+            cursor_y++
         }
     }
     
     ; ビットマップモードバックスペース処理
     sub bbackspace() {
         ; Shift-JIS 2バイト目待ち状態の場合はキャンセルのみ
-        if sjis_state == 1 {
-            sjis_state = 0
+        if sjis_first_byte != 0 {
             sjis_first_byte = 0
             return
         }
         
         ; カーソル位置を1つ戻す
-        if bitmap_x > 0 {
+        if cursor_x != 0 {
             ; 同じ行内での後退
-            bitmap_x--
+            cursor_x--
         } else {
             ; 行頭の場合、前の行の行末に移動
-            ubyte min_row = if bitmap_window_enabled bitmap_top_row else 0
-            if bitmap_y > min_row {
-                bitmap_y--
-                bitmap_x = 39  ; 前の行の最後の位置
+            if cursor_y > bitmap_top_row {
+                cursor_y--
+                cursor_x = 39  ; 前の行の最後の位置
             } else {
                 ; 範囲の上端または画面の左上角の場合は何もしない
                 return
@@ -375,63 +368,38 @@ jtxt {
         }
         
         ; 行範囲制御が有効で、範囲外の場合は描画しない
-        if bitmap_window_enabled {
-            if bitmap_y < bitmap_top_row or bitmap_y > bitmap_bottom_row {
-                return
-            }
+        if cursor_y < bitmap_top_row or cursor_y > bitmap_bottom_row {
+            return
         }
         
         ; 現在位置に空白文字を描画（文字を消去）
-        draw_font_to_bitmap(32, bitmap_x, bitmap_y)  ; 32 = スペース文字
+        draw_font_to_bitmap(32)  ; 32 = スペース文字
     }
     
-    ; ビットマップ画面を上に1行スクロール（1行ずつ同期版）
+    ; ビットマップ画面を上に1行スクロール
     sub bscroll_up() {
-        if bitmap_window_enabled {
-            ; 行範囲制御が有効な場合、指定範囲内のみスクロール
-            ubyte row_w
-            for row_w in bitmap_top_row to bitmap_bottom_row - 1 {
-                ; ビットマップデータをコピー（1文字行分）
-                uword src_addr_w = BITMAP_BASE + ((row_w + 1) as uword) * 320
-                uword dest_addr_w = BITMAP_BASE + (row_w as uword) * 320
-                sys.memcopy(src_addr_w, dest_addr_w, 320)
-                
-                ; 同じ行のカラー情報もすぐにコピー
-                uword src_color_w = BITMAP_SCREEN_RAM + ((row_w + 1) as uword) * 40
-                uword dest_color_w = BITMAP_SCREEN_RAM + (row_w as uword) * 40
-                sys.memcopy(src_color_w, dest_color_w, 40)
-            }
+        ; 行範囲制御が有効な場合、指定範囲内のみスクロール
+        cx16.r3 = BITMAP_BASE + (bitmap_top_row as uword) * 320         ; dst
+        cx16.r2 = cx16.r3 + 320                                         ; src
+        cx16.r5 = BITMAP_SCREEN_RAM + (bitmap_top_row as uword) * 40    ; dst
+        cx16.r4 = cx16.r5 + 40                                          ; src
+        repeat bitmap_bottom_row - bitmap_top_row {
+            ; ビットマップデータをコピー（1行分）
+            sys.memcopy(cx16.r2, cx16.r3, 320)
+            cx16.r2 += 320
+            cx16.r3 += 320
             
-            ; 範囲内の最下行をクリア
-            uword last_row_w = BITMAP_BASE + (bitmap_bottom_row as uword) * 320
-            sys.memset(last_row_w, 320, 0)
-            
-            ; 範囲内の最下行のカラー情報をクリア
-            uword last_color_w = BITMAP_SCREEN_RAM + (bitmap_bottom_row as uword) * 40
-            sys.memset(last_color_w, 40, (bitmap_fg_color << 4) | bitmap_bg_color)
-        } else {
-            ; 行範囲制御が無効な場合、全画面スクロール
-            ubyte row
-            for row in 0 to 23 {
-                ; ビットマップデータをコピー（1文字行分）
-                uword src_addr = BITMAP_BASE + ((row + 1) as uword) * 320
-                uword dest_addr = BITMAP_BASE + (row as uword) * 320
-                sys.memcopy(src_addr, dest_addr, 320)
-                
-                ; 同じ行のカラー情報もすぐにコピー
-                uword src_color_addr = BITMAP_SCREEN_RAM + ((row + 1) as uword) * 40
-                uword dest_color_addr = BITMAP_SCREEN_RAM + (row as uword) * 40
-                sys.memcopy(src_color_addr, dest_color_addr, 40)
-            }
-            
-            ; 最下行（24行目）をクリア
-            uword last_row_addr = BITMAP_BASE + 7680  ; 24 * 320
-            sys.memset(last_row_addr, 320, 0)
-            
-            ; 最下行のカラー情報をクリア
-            uword last_color_addr = SCREEN_RAM + 960  ; 24 * 40
-            sys.memset(last_color_addr, 40, (bitmap_fg_color << 4) | bitmap_bg_color)
+            ; 同じ行のカラー情報もすぐにコピー
+            sys.memcopy(cx16.r4, cx16.r5, 40)
+            cx16.r4 += 40
+            cx16.r5 += 40
         }
+        
+        ; 範囲内の最下行をクリア
+        sys.memset(cx16.r3, 320, 0)         ; r3 = 最下行になっている(はず)
+        
+        ; 範囲内の最下行のカラー情報をクリア
+        sys.memset(cx16.r5, 40, bitmap_color)     ; r5 = 最下行になっている(はず)
     }
     
     
@@ -455,46 +423,108 @@ jtxt {
     ; 以下は内部関数（最適化：呼び出し回数最小化）
     
     ; キャラクタセットをROMからRAMにコピー
-    sub copy_charset_to_ram() {
-        uword i
-        for i in 0 to 2047 {
-            ubyte char_data = @(CHARSET_ROM + i)
-            @(CHARSET_RAM + i) = char_data
-        }
+    asmsub copy_charset_to_ram() {
+        %asm {{
+            ; Set ROM Pointer
+            lda #<p8c_CHARSET_ROM
+            sta cx16.r2
+            lda #>p8c_CHARSET_ROM
+            ; lda #$d8    ; char set 2
+            sta cx16.r2 + 1
+
+            ; Set RAM Pointer
+            lda #<p8c_CHARSET_RAM
+            sta cx16.r3
+            lda #>p8c_CHARSET_RAM
+            sta cx16.r3 + 1
+
+            ; Copy ROM to RAM
+            ; $d000 -> $3000
+            ldx #$08            ; 8 pages of 256 bytes = 2KB
+            ldy #$00
+-
+            lda (cx16.r2),y     ; read byte from vector stored in cx16.r2/cx16.r2+1
+            sta (cx16.r3),y     ; write to the RAM
+            iny                 ; do this 255 times...
+            bne -               ;  ..for low byte $00 to $FF
+
+            inc cx16.r2 + 1     ; Increase high bytes
+            inc cx16.r3 + 1
+            dex                 ; decrease X by one
+            bne -
+            rts
+        }}
     }
     
     ; JIS X 0201半角文字データを指定アドレスに書き込み（低レベル関数）
-    sub define_jisx0201(uword dest_addr, ubyte jisx0201_code) {
-        uword font_offset = (jisx0201_code as uword) * 8
-        @(BANK_REG) = 1
-        
-        ubyte row
-        for row in 0 to 7 {
-            @(dest_addr + row as uword) = @(ROM_BASE + font_offset + row as uword)
-        }
-        
-        @(BANK_REG) = 0
+    asmsub define_jisx0201(ubyte jisx0201_code @ A) {
+        %asm {{
+            ldy  #0
+            sty  P8ZP_SCRATCH_B1
+            asl  a
+            rol  P8ZP_SCRATCH_B1
+            asl  a
+            rol  P8ZP_SCRATCH_B1
+            asl  a
+            rol  P8ZP_SCRATCH_B1
+            ldy  P8ZP_SCRATCH_B1
+            clc
+            adc  #<p8c_ROM_BASE
+            tax
+            tya
+            adc  #>p8c_ROM_BASE
+            tay
+            txa
+            sta  cx16.r2
+            sty  cx16.r2 + 1
+
+            lda  #1
+            sta  p8c_BANK_REG
+
+            lda  #8
+            sta  define_jisx0201_tempv
+-
+            ldy  #0
+            lda  (cx16.r2),y
+            sta  (p8b_jtxt.p8v_define_addr),y
+            inc  p8b_jtxt.p8v_define_addr
+            bne  +
+            inc  p8b_jtxt.p8v_define_addr+1
++
+            inc  cx16.r2
+            bne  +
+            inc  cx16.r2 + 1
++
+            dec  define_jisx0201_tempv
+            bne  -
+
+            lda  #0
+            sta  p8c_BANK_REG
+            rts
+
+            .section BSS_NOCLEAR
+define_jisx0201_tempv    .byte  ?
+            .send BSS_NOCLEAR
+; !notreached!
+        }}
     }
     
     ; Shift-JISコードから漢字ROMオフセットを計算
     sub sjis_to_offset(uword sjis_code) -> uword {
-        uword @zp ch = msb(sjis_code)
-        uword @zp ch2 = lsb(sjis_code)
+        ubyte @zp ch = msb(sjis_code)
+        ubyte @zp ch2 = lsb(sjis_code)
         
         ; ShiftJIS -> Ku/Ten変換
+        uword row = (ch as uword) << 1
         if ch <= $9f {
-            if ch2 < $9f {
-                ch = (ch as uword << 1) - $102
-            } else {
-                ch = (ch as uword << 1) - $101
-            }
+            row -= $0102
         } else {
-            if ch2 < $9f {
-                ch = (ch as uword << 1) - $182
-            } else {
-                ch = (ch as uword << 1) - $181
-            }
+            row -= $0182
         }
+        if ch2 >= $9f {
+            row++
+        }
+        ch = lsb(row)
 
         if ch2 < $7f {
             ch2 -= $40
@@ -504,19 +534,18 @@ jtxt {
             ch2 -= $9f
         }
         
-        uword code = ch * 94 + ch2
-        uword offset = code * 8 + JISX0208_OFFSET
-        return offset
+        return ((ch as uword) * 94 + ch2 as uword)* 8 + JISX0208_OFFSET
     }
     
     ; 指定アドレスにフォントデータを書き込み（汎用関数）
     sub define_font(uword dest_addr, uword code) {
-        if code <= 255 {
+        define_addr = dest_addr
+        if msb(code) == 0 {
             ; 1バイト文字（ASCII、半角カナ）
-            define_jisx0201(dest_addr, lsb(code))
+            define_jisx0201(lsb(code))
         } else {
             ; 2バイト文字（漢字）
-            define_kanji(dest_addr, code)
+            define_kanji(code)
         }
     }
     
@@ -526,7 +555,7 @@ jtxt {
     }
     
     ; Shift-JIS漢字データを指定アドレスに書き込み（低レベル関数、MagicDesk用8KBバンク）
-    sub define_kanji(uword dest_addr, uword sjis_code) {
+    sub define_kanji(uword sjis_code) {
         uword kanji_offset = sjis_to_offset(sjis_code)
         ubyte bank = (kanji_offset / 8192) as ubyte + 1
         uword in_bank_offset = kanji_offset % 8192
@@ -537,7 +566,7 @@ jtxt {
         
         ubyte row
         for row in 0 to 7 {
-            @(dest_addr + row as uword) = @(rom_addr + row as uword)
+            @(define_addr + row as uword) = @(rom_addr + row as uword)
         }
         
         @(BANK_REG) = 0
@@ -545,20 +574,18 @@ jtxt {
     
     ; ビットマップモードで1文字描画（txt.putc互換、Shift-JISステートフル処理）
     sub bputc(ubyte char_code) {
-        ; Shift-JIS 2バイト目待ち状態の処理
-        if sjis_state == 1 {
+        ; Shift-JIS 2バイト目待ち状態の処理（sjis_first_byte!=0）
+        if sjis_first_byte != 0 {
             ; 2バイト目として有効な範囲チェック
             if (char_code >= $40 and char_code <= $7E) or (char_code >= $80 and char_code <= $FC) {
                 ; Shift-JIS文字として処理
                 uword sjis_code = (sjis_first_byte as uword << 8) | char_code as uword
                 bputc_internal(sjis_code)
-                sjis_state = 0
                 sjis_first_byte = 0
                 return
             } else {
                 ; 無効な2バイト目の場合、1バイト目を単独で出力してリセット
                 bputc_internal(sjis_first_byte as uword)
-                sjis_state = 0
                 sjis_first_byte = 0
                 ; そして現在の文字を処理続行
             }
@@ -567,7 +594,6 @@ jtxt {
         ; Shift-JIS 1バイト目判定
         if (char_code >= $81 and char_code <= $9F) or (char_code >= $E0 and char_code <= $FC) {
             ; Shift-JIS 1バイト目として保存
-            sjis_state = 1
             sjis_first_byte = char_code
             return
         }
@@ -595,23 +621,16 @@ jtxt {
     ; 内部用ビットマップ文字出力（実際の描画処理）
     sub bputc_internal(uword char_code) {
         ; 行範囲制御が有効で、範囲外の場合は何もしない
-        if bitmap_window_enabled {
-            if bitmap_y < bitmap_top_row or bitmap_y > bitmap_bottom_row {
-                return
-            }
-        }
-        
-        ; 範囲制御無効時も24行目を超えたら何もしない
-        if not bitmap_window_enabled and bitmap_y > 24 {
+        if bitmap_window_enabled and (cursor_y < bitmap_top_row or cursor_y > bitmap_bottom_row) {
             return
         }
         
         ; ビットマップアドレスを計算して直接書き込み
-        draw_font_to_bitmap(char_code, bitmap_x, bitmap_y)
+        draw_font_to_bitmap(char_code)
         
         ; 次の文字位置へ
-        bitmap_x++
-        if bitmap_x >= 40 {
+        cursor_x++
+        if cursor_x >= 40 {
             ; 自動改行処理
             bnewline()
         }
@@ -628,29 +647,14 @@ jtxt {
     }
     
     ; フォントデータを直接ビットマップメモリに描画
-    sub draw_font_to_bitmap(uword char_code, ubyte x, ubyte y) {
-        ; ビットマップ上の位置を計算
-        ; C64のビットマップレイアウト：
-        ; - 画面は8行ごとのブロックに分かれる（0-7行、8-15行、16-23行、24行）
-        ; - 各ブロック内で、文字は左から右、上から下の順に配置
-        ; - 各文字は8バイト連続で格納
-        
-        ubyte char_row = y / 8            ; 文字のブロック行（0-3）
-        ubyte char_line = y & 7           ; ブロック内の行（0-7）
-        
-        ; ビットマップアドレス計算
-        ; ブロック開始 + ブロック内の行オフセット + 文字位置
-        uword bitmap_addr = BITMAP_BASE +
-                           (char_row as uword) * 320 * 8 +    ; ブロック行オフセット（各2560バイト）
-                           (char_line as uword) * 320 +       ; ブロック内行オフセット
-                           (x as uword) * 8                   ; X位置（各文字8バイト）
-        
+    sub draw_font_to_bitmap(uword char_code) {
+        ; TODO 毎回cursor_x, cursor_yからアドレスを計算するのは無駄なのでそのうち最適化を検討したい
+
         ; カラー情報設定（ビットマップモード用画面RAMの該当位置）
-        uword color_addr = BITMAP_SCREEN_RAM + (y as uword) * 40 + x as uword
-        @(color_addr) = (bitmap_fg_color << 4) | bitmap_bg_color
+        @(BITMAP_SCREEN_RAM + (cursor_y as uword) * 40 + cursor_x as uword) = bitmap_color
         
         ; フォントデータを直接ビットマップに書き込み
-        define_font(bitmap_addr, char_code)
+        define_font(BITMAP_BASE + ((cursor_y / 8) as uword) * 320 * 8 + ((cursor_y & 7) as uword) * 320 + (cursor_x as uword) * 8, char_code)
     }
     
     ; 文字列リソースを内部バッファに読み込み（共通処理）

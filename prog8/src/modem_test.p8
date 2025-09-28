@@ -24,8 +24,8 @@ main {
         ; IME初期化
         ime.init()
         
-        ; ライブラリ初期化（文字範囲64-254、190文字使用、ビットマップモード）
-        jtxt.init(64, 190, jtxt.BITMAP_MODE)
+        ; ライブラリ初期化（ビットマップモード）
+        jtxt.init(jtxt.BITMAP_MODE)
         
         ; 画面設定
         jtxt.bcolor(5, 0)  ; 緑文字、黒背景（ターミナル風）
@@ -152,8 +152,8 @@ main {
                             }
                         }
                         if echo_mode {
-                            cursor_x = jtxt.bitmap_x
-                            cursor_y = jtxt.bitmap_y
+                            cursor_x = jtxt.cursor_x
+                            cursor_y = jtxt.cursor_y
                         }
                     }
                     ; 結果バッファをクリア
@@ -254,7 +254,7 @@ main {
                                     if echo_mode {
                                         jtxt.bputc(key)
                                         cursor_x++
-                                        cursor_y = jtxt.bitmap_y
+                                        cursor_y = jtxt.cursor_y
                                     }
                                     ; モデムに送信（接続時）
                                     if modem_connected {
@@ -289,7 +289,7 @@ main {
                                 jtxt.bputc(data)  ; CRを表示（これが改行処理）
                                 jtxt.bcolor(5, 0)
                                 cursor_x = 0      ; カーソル位置リセット
-                                cursor_y = jtxt.bitmap_y  ; 同期
+                                cursor_y = jtxt.cursor_y  ; 同期
                             }
                             ; 40の倍数位置なら何もしない（自動改行済み）
                         } else if data == 8 {
@@ -310,7 +310,7 @@ main {
                             jtxt.bputc(data)
                             jtxt.bcolor(5, 0)  ; 緑に戻す
                             cursor_x++  ; 単純に加算
-                            cursor_y = jtxt.bitmap_y  ; 同期
+                            cursor_y = jtxt.cursor_y  ; 同期
                         }
                     }
                 }
@@ -428,8 +428,8 @@ main {
         ; jtxtの行範囲制御に任せて改行実行
         jtxt.bputc(13)
         cursor_x = 0  ; 改行したら0にリセット
-        ; cursor_yをjtxt.bitmap_yと同期
-        cursor_y = jtxt.bitmap_y
+        ; cursor_yをjtxt.cursor_yと同期
+        cursor_y = jtxt.cursor_y
     }
     
     sub show_message(uword message, ubyte color) {

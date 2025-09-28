@@ -7,13 +7,12 @@
 main {
     
     sub start() {
-        ; 日本語テキストライブラリ初期化（文字128-191を使用、モード0）
-        jtxt.init(128, 64, 0)
+        ; 日本語テキストライブラリ初期化（モード0）
+        jtxt.init(0)
         
         ; 画面クリアと初期設定
         jtxt.cls()
-        jtxt.set_bgcolor(0)        ; 黒い背景
-        jtxt.set_bordercolor(6)    ; 青いボーダー
+        jtxt.set_bgcolor(0, 6)     ; 背景=黒, ボーダー=青
         jtxt.set_color(1)          ; 白い文字
         
         ; タイトル表示
@@ -34,8 +33,7 @@ main {
         txt.print(iso:"JAPANESE MESSAGE:")
         
         ; 日本語メッセージを画面中央に表示
-        jtxt.set_bgcolor(6)        ; 青い背景
-        jtxt.set_bordercolor(14)   ; ライトブルーのボーダー
+        jtxt.set_bgcolor(6, 14)    ; 背景=青, ボーダー=ライトブルー
         jtxt.set_color(7)          ; 黄色い文字
         jtxt.locate(5, 10)
         jtxt.puts(&hello_message)
@@ -56,8 +54,7 @@ main {
         ; 画面をクリアして別の色で表示(全てjtxtで表示)
         jtxt.cls()
         
-        jtxt.set_bgcolor(0)        ; 黒い背景
-        jtxt.set_bordercolor(0)    ; 黒いボーダー
+        jtxt.set_bgcolor(0, 0)     ; 背景=黒, ボーダー=黒
         jtxt.set_color(10)         ; ライトレッドの文字
         jtxt.locate(3, 8)
         jtxt.puts(&hello_message)

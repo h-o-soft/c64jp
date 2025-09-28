@@ -17,6 +17,8 @@ DICCONV_DIR := $(PROJECT_ROOT)/dicconv
 FONTCONV_DIR := $(PROJECT_ROOT)/fontconv
 CREATECRT_DIR := $(PROJECT_ROOT)/createcrt
 STRINGRES_DIR := $(PROJECT_ROOT)/stringresources
+C_DIR := $(PROJECT_ROOT)/c
+C_BUILD_DIR := $(C_DIR)/build
 
 # Default values
 TARGET ?= hello
@@ -72,6 +74,20 @@ help:
 	@echo "  make release-files     - Create both CRT and D64 files"
 	@echo "  make clean             - Remove build artifacts"
 	@echo "  make clean-all         - Remove all generated files including fonts"
+	@echo ""
+	@echo "C version targets:"
+	@echo "  make c-build           - Build C version with llvm-mos"
+	@echo "  make c-hello           - Build and run C hello program"
+	@echo "  make c-test            - Build and run C test program"
+	@echo "  make c-ime-test        - Build and run C IME test program"
+	@echo "  make c-clean           - Remove C build artifacts"
+	@echo ""
+	@echo "QE Text Editor targets:"
+	@echo "  make qe-build          - Build QE text editor"
+	@echo "  make qe-run            - Build and run QE text editor"
+	@echo "  make qe-test           - Build and run QE test program"
+	@echo "  make qe-clean          - Remove QE build artifacts"
+	@echo ""
 	@echo "  make help              - Show this help"
 	@echo ""
 	@echo "Examples:"
@@ -96,6 +112,9 @@ help:
 $(BUILD_DIR):
 	@mkdir -p $(BUILD_DIR)
 
+$(C_BUILD_DIR):
+	@mkdir -p $(C_BUILD_DIR)
+
 # Build program
 $(PRG_FILE): $(P8_FILE) | $(BUILD_DIR)
 	@echo "=== Prog8 Kanji Display Build ==="
@@ -104,7 +123,7 @@ $(PRG_FILE): $(P8_FILE) | $(BUILD_DIR)
 		exit 1; \
 	fi
 	@echo "Compiling: $(TARGET).p8"
-	@prog8c -target c64 -out "$(BUILD_DIR)" "$(P8_FILE)"
+	@prog8c -asmlist -target c64 -out "$(BUILD_DIR)" "$(P8_FILE)"
 	@echo "✓ $(TARGET).p8 compilation completed"
 
 # Font files creation
@@ -179,6 +198,8 @@ list:
 	@echo "=== Built Files ==="
 	@ls -la "$(BUILD_DIR)"/*.prg 2>/dev/null || echo "No PRG files found"
 
+
+
 # Execution targets
 .PHONY: run
 run: $(PRG_FILE) $(BASIC_CRT)
@@ -249,7 +270,7 @@ clean:
 	@echo "Cleanup completed"
 
 .PHONY: clean-all
-clean-all: clean
+clean-all: clean c-clean qe-clean
 	@echo "Removing all generated files..."
 	@rm -rf $(BUILD_DIR)
 	@cd $(FONTCONV_DIR) && $(MAKE) clean
@@ -276,12 +297,95 @@ debug:
 	@echo "EMU_MODEM_OPTS: $(EMU_MODEM_OPTS)"
 	@echo "EMU_EXTRA_OPTS: $(EMU_EXTRA_OPTS)"
 
+# C version targets
+.PHONY: c-build
+c-build: $(C_BUILD_DIR) $(BASIC_CRT)
+	@echo "=== Building C version with llvm-mos ==="
+	@if ! which mos-c64-clang >/dev/null 2>&1; then \
+		echo "Error: llvm-mos not found. Please install llvm-mos SDK."; \
+		echo "Visit: https://github.com/llvm-mos/llvm-mos-sdk"; \
+		exit 1; \
+	fi
+	@cd $(C_BUILD_DIR) && cmake ../
+	@cd $(C_BUILD_DIR) && make
+	@echo "C version build completed"
+
+.PHONY: c-hello
+c-hello: c-build
+	@echo "=== Running hello_c.prg ==="
+	@if which $(EMU_COMMAND) >/dev/null 2>&1; then \
+		"$(EMU_COMMAND)" $(EMU_CARTRIDGE_OPT) "$(BASIC_CRT)" $(EMU_AUTOSTART_OPT) "$(C_BUILD_DIR)/hello_c.prg" $(EMU_EXTRA_OPTS); \
+	else \
+		echo "Error: Emulator command not found: $(EMU_COMMAND)"; \
+		exit 1; \
+	fi
+
+.PHONY: c-test
+c-test: c-build
+	@echo "=== Running test_jtxt.prg ==="
+	@if which $(EMU_COMMAND) >/dev/null 2>&1; then \
+		"$(EMU_COMMAND)" $(EMU_CARTRIDGE_OPT) "$(BASIC_CRT)" $(EMU_AUTOSTART_OPT) "$(C_BUILD_DIR)/test_jtxt.prg" $(EMU_EXTRA_OPTS); \
+	else \
+		echo "Error: Emulator command not found: $(EMU_COMMAND)"; \
+		exit 1; \
+	fi
+
+.PHONY: c-ime-test
+c-ime-test: c-build
+	@echo "=== Running ime_test_c.prg ==="
+	@if which $(EMU_COMMAND) >/dev/null 2>&1; then \
+		"$(EMU_COMMAND)" $(EMU_CARTRIDGE_OPT) "$(BASIC_CRT)" $(EMU_AUTOSTART_OPT) "$(C_BUILD_DIR)/ime_test_c.prg" $(EMU_EXTRA_OPTS); \
+	else \
+		echo "Error: Emulator command not found: $(EMU_COMMAND)"; \
+		exit 1; \
+	fi
+
+.PHONY: c-clean
+c-clean:
+	@echo "Removing C build artifacts..."
+	@rm -rf $(C_BUILD_DIR)
+	@echo "C cleanup completed"
+
+# QE Text Editor targets
+.PHONY: qe-build
+qe-build: $(C_BUILD_DIR) $(BASIC_CRT)
+	@echo "=== Building QE Text Editor ==="
+	@cd $(C_DIR)/src/qe && $(MAKE) all
+	@echo "QE text editor build completed"
+
+.PHONY: qe-run
+qe-run: qe-build
+	@echo "=== Running QE Text Editor ==="
+	@if which $(EMU_COMMAND) >/dev/null 2>&1; then \
+		"$(EMU_COMMAND)" $(EMU_CARTRIDGE_OPT) "$(BASIC_CRT)" $(EMU_AUTOSTART_OPT) "$(C_BUILD_DIR)/qe.prg" $(EMU_EXTRA_OPTS); \
+	else \
+		echo "Error: Emulator command not found: $(EMU_COMMAND)"; \
+		exit 1; \
+	fi
+
+.PHONY: qe-test
+qe-test: $(C_BUILD_DIR) $(BASIC_CRT)
+	@echo "=== Building and running QE test ==="
+	@cd $(C_DIR)/src/qe && $(MAKE) test
+	@if which $(EMU_COMMAND) >/dev/null 2>&1; then \
+		"$(EMU_COMMAND)" $(EMU_CARTRIDGE_OPT) "$(BASIC_CRT)" $(EMU_AUTOSTART_OPT) "$(C_BUILD_DIR)/qe_fio_test.prg" $(EMU_EXTRA_OPTS); \
+	else \
+		echo "Error: Emulator command not found: $(EMU_COMMAND)"; \
+		exit 1; \
+	fi
+
+.PHONY: qe-clean
+qe-clean:
+	@echo "Cleaning QE build artifacts..."
+	@cd $(C_DIR)/src/qe && $(MAKE) clean
+	@echo "QE cleanup completed"
+
 # Commonly used combination aliases
 .PHONY: ime
 ime:
 	@$(MAKE) TARGET=ime_test run
 
-.PHONY: ime-strings  
+.PHONY: ime-strings
 ime-strings:
 	@$(MAKE) TARGET=ime_test run-strings
 
@@ -296,6 +400,7 @@ modem:
 # D64 disk image creation
 # Release targets for D64 creation
 RELEASE_TARGETS := hello hello_bitmap hello_resource ime_test modem_test
+C_RELEASE_TARGETS := qe
 D64_IMAGE := $(BUILD_DIR)/c64jp_programs.d64
 
 .PHONY: build-all
@@ -304,6 +409,11 @@ build-all:
 	@for target in $(RELEASE_TARGETS); do \
 		echo "Building $$target.p8..."; \
 		$(MAKE) TARGET=$$target $(BUILD_DIR)/$$target.prg || exit 1; \
+	done
+	@echo "Building C language programs..."
+	@for target in $(C_RELEASE_TARGETS); do \
+		echo "Building C/$$target..."; \
+		$(MAKE) -C $(C_DIR)/src/$$target || exit 1; \
 	done
 	@echo "All targets built successfully"
 
@@ -332,6 +442,15 @@ d64: build-all $(BASIC_CRT)
 			echo "  Warning: $$target.prg not found"; \
 		fi; \
 	done
+	@echo "Adding C language programs..."
+	@for target in $(C_RELEASE_TARGETS); do \
+		if [ -f "$(C_BUILD_DIR)/$$target.prg" ]; then \
+			echo "  Adding C/$$target.prg as \"$$target\""; \
+			c1541 "$(D64_IMAGE)" -write "$(C_BUILD_DIR)/$$target.prg" "$$target"; \
+		else \
+			echo "  Warning: C/$$target.prg not found"; \
+		fi; \
+	done
 	@echo "D64 disk image created: $(D64_IMAGE)"
 	@echo ""
 	@echo "Contents of $(D64_IMAGE):"
@@ -343,4 +462,3 @@ release-files: d64
 	@echo "CRT File: $(BASIC_CRT)"
 	@echo "D64 File: $(D64_IMAGE)"
 	@ls -la "$(BASIC_CRT)" "$(D64_IMAGE)"
-

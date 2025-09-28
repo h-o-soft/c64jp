@@ -33,19 +33,26 @@ jobs:
       run: |
         # Install 64tass from Ubuntu repositories
         sudo apt-get install -y 64tass
-        
+
         # Download and install prog8 compiler
         wget https://github.com/irmen/prog8/releases/download/v11.4.1/prog8c-11.4.1-all.jar
         sudo mkdir -p /opt/prog8
         sudo mv prog8c-11.4.1-all.jar /opt/prog8/
-        
+
         # Create wrapper script
         sudo tee /usr/local/bin/prog8c << 'EOF'
         #!/bin/bash
         java -jar /opt/prog8/prog8c-11.4.1-all.jar "$@"
         EOF
         sudo chmod +x /usr/local/bin/prog8c
-        
+
+    - name: Install llvm-mos toolchain
+      run: |
+        # Download and install llvm-mos
+        wget https://github.com/llvm-mos/llvm-mos-sdk/releases/latest/download/llvm-mos-linux.tar.xz
+        sudo mkdir -p /opt/llvm-mos
+        sudo tar -xf llvm-mos-linux.tar.xz -C /opt/llvm-mos --strip-components=1
+        echo "/opt/llvm-mos/bin" >> $GITHUB_PATH
     - name: Test font conversion
       run: make fonts
       
@@ -74,4 +81,5 @@ jobs:
         echo "✅ Build completed successfully"
         echo "📦 CRT size: $(stat -c%s crt/c64jpkanji.crt) bytes"
         echo "💾 D64 size: $(stat -c%s prog8/build/c64jp_programs.d64) bytes"
-        echo "🎯 Programs built: hello, hello_bitmap, hello_resource, ime_test, modem_test"
+        echo "🎯 Prog8 programs: hello, hello_bitmap, hello_resource, ime_test, modem_test"
+        echo "🔧 C programs: qe ($(stat -c%s c/build/qe.prg) bytes)"

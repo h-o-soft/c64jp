@@ -7,13 +7,12 @@
 main {
     
     sub start() {
-        ; 日本語テキストライブラリ初期化（文字33-227を使用、テキストモード）
-        jtxt.init(33, 200, 0)
+        ; 日本語テキストライブラリ初期化（テキストモード）
+        jtxt.init(0)
         
         ; 画面クリアと色設定
         jtxt.cls()
-        jtxt.set_bgcolor(0)        ; 黒い背景
-        jtxt.set_bordercolor(6)    ; 青いボーダー
+        jtxt.set_bgcolor(0, 6)     ; 背景=黒, ボーダー=青
         jtxt.set_color(1)          ; 白
         
         ; タイトル表示
