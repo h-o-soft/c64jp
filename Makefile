@@ -400,6 +400,7 @@ modem:
 # D64 disk image creation
 # Release targets for D64 creation
 RELEASE_TARGETS := hello hello_bitmap hello_resource ime_test modem_test
+C_RELEASE_TARGETS := qe
 D64_IMAGE := $(BUILD_DIR)/c64jp_programs.d64
 
 .PHONY: build-all
@@ -408,6 +409,11 @@ build-all:
 	@for target in $(RELEASE_TARGETS); do \
 		echo "Building $$target.p8..."; \
 		$(MAKE) TARGET=$$target $(BUILD_DIR)/$$target.prg || exit 1; \
+	done
+	@echo "Building C language programs..."
+	@for target in $(C_RELEASE_TARGETS); do \
+		echo "Building C/$$target..."; \
+		$(MAKE) -C $(C_DIR)/src/$$target || exit 1; \
 	done
 	@echo "All targets built successfully"
 
@@ -434,6 +440,15 @@ d64: build-all $(BASIC_CRT)
 			c1541 "$(D64_IMAGE)" -write "$(BUILD_DIR)/$$target.prg" "$$d64name"; \
 		else \
 			echo "  Warning: $$target.prg not found"; \
+		fi; \
+	done
+	@echo "Adding C language programs..."
+	@for target in $(C_RELEASE_TARGETS); do \
+		if [ -f "$(C_BUILD_DIR)/$$target.prg" ]; then \
+			echo "  Adding C/$$target.prg as \"$$target\""; \
+			c1541 "$(D64_IMAGE)" -write "$(C_BUILD_DIR)/$$target.prg" "$$target"; \
+		else \
+			echo "  Warning: C/$$target.prg not found"; \
 		fi; \
 	done
 	@echo "D64 disk image created: $(D64_IMAGE)"
