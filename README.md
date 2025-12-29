@@ -42,6 +42,10 @@ MagicDesk形式のカートリッジ（最大1MB）に以下のデータを格�
 - curl（フォントダウンロード用）
 - unzip（フォント展開用）
 
+### C言語版（オプション）
+- [llvm-mos](https://github.com/llvm-mos/llvm-mos) - C/C++コンパイラ（C言語版QEエディタ用）
+- [Oscar64](https://github.com/drmortalwombat/oscar64) - C言語コンパイラ（Oscar64版用）
+
 ### 実行環境
 - [VICE](https://vice-emu.sourceforge.io/)エミュレータ（推奨: x64sc）
 - または実機のCommodore 64 + MagicDesk対応カートリッジ（詳細は後述）
@@ -141,6 +145,17 @@ make TARGET=hello_resource run-strings
 | `make ime` | IMEテストを実行（`make TARGET=ime_test run`のエイリアス） |
 | `make stateful` | 文字列リソーステストを実行 |
 
+### Oscar64版（C言語）
+| ターゲット | 説明 |
+|------------|------|
+| `make oscar-build` | Oscar64でhelloサンプルをビルド |
+| `make oscar-hello` | helloサンプルをビルドして実行 |
+| `make oscar-qe-build` | Oscar64でQEエディタをビルド |
+| `make oscar-qe-run` | QEエディタをビルドして実行 |
+| `make oscar-crt-build` | EasyFlash CRTをビルド |
+| `make oscar-crt-run` | EasyFlash CRTをビルドして実行 |
+| `make oscar-clean` | Oscar64ビルド成果物を削除 |
+
 ### 設定可能な変数
 ```bash
 # ビルドするプログラムを指定
@@ -167,6 +182,12 @@ c64-kanji-rom/
 │       ├── ime.p8         # かな漢字変換ライブラリ
 │       ├── swiftlink.p8   # SwiftLink通信ライブラリ
 │       └── *.p8           # 各種テストプログラム
+├── c/                      # C言語版
+│   ├── oscar64_lib/       # Oscar64共有jtxtライブラリ
+│   ├── oscar64/           # Oscar64 helloサンプル
+│   ├── oscar64_qe/        # Oscar64 QEエディタ
+│   ├── oscar64_crt/       # Oscar64 EasyFlash CRT版
+│   └── src/               # llvm-mos版ソース
 ├── fontconv/               # フォント変換ツール（美咲フォント→バイナリ）
 │   ├── mkfont.py          # フォント変換スクリプト
 │   └── Makefile           # フォントビルド用

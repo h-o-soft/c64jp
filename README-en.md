@@ -42,6 +42,10 @@ General-purpose libraries:
 - curl (for font downloading)
 - unzip (for font extraction)
 
+### C Language Version (Optional)
+- [llvm-mos](https://github.com/llvm-mos/llvm-mos) - C/C++ compiler (for llvm-mos QE editor)
+- [Oscar64](https://github.com/drmortalwombat/oscar64) - C compiler (for Oscar64 version)
+
 ### Runtime Environment
 - [VICE](https://vice-emu.sourceforge.io/) emulator (recommended: x64sc)
 - Or real Commodore 64 + MagicDesk-compatible cartridge (details below)
@@ -141,6 +145,17 @@ make TARGET=hello_resource run-strings
 | `make ime` | Run IME test (alias for `make TARGET=ime_test run`) |
 | `make stateful` | Run string resource test |
 
+### Oscar64 Version (C Language)
+| Target | Description |
+|---------|-------------|
+| `make oscar-build` | Build hello sample with Oscar64 |
+| `make oscar-hello` | Build and run hello sample |
+| `make oscar-qe-build` | Build QE editor with Oscar64 |
+| `make oscar-qe-run` | Build and run QE editor |
+| `make oscar-crt-build` | Build EasyFlash CRT |
+| `make oscar-crt-run` | Build and run EasyFlash CRT |
+| `make oscar-clean` | Remove Oscar64 build artifacts |
+
 ### Configurable Variables
 ```bash
 # Specify program to build
@@ -167,6 +182,12 @@ c64-kanji-rom/
 │       ├── ime.p8         # Kana-Kanji conversion library
 │       ├── swiftlink.p8   # SwiftLink communication library
 │       └── *.p8           # Various test programs
+├── c/                      # C language version
+│   ├── oscar64_lib/       # Oscar64 shared jtxt library
+│   ├── oscar64/           # Oscar64 hello sample
+│   ├── oscar64_qe/        # Oscar64 QE editor
+│   ├── oscar64_crt/       # Oscar64 EasyFlash CRT version
+│   └── src/               # llvm-mos version source
 ├── fontconv/               # Font conversion tool (Misaki font → binary)
 │   ├── mkfont.py          # Font conversion script
 │   └── Makefile           # Font build file
