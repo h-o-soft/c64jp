@@ -12,7 +12,9 @@
 *.lst
 *.sym
 *.lab
+*.lbl
 *.map
+*.int
 *.vice-mon-list
 
 # prog8コンパイラ生成ファイル
@@ -24,6 +26,11 @@ c/build/
 *.obj
 *.elf
 *.hex
+
+# Oscar64コンパイラ生成ファイル
+c/oscar64/*.asm
+c/oscar64_qe/*.asm
+c/oscar64_crt/*.asm
 
 # Python生成ファイル
 __pycache__/

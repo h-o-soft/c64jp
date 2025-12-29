@@ -68,6 +68,7 @@ help:
 	@echo "  make run-no-crt        - Run without cartridge"
 	@echo "  make dict              - Update dictionary and create CRT"
 	@echo "  make crt               - Create CRT file only"
+	@echo "  make crt-skk-jisyo-m   - Create CRT with SKK-JISYO.M dictionary"
 	@echo "  make fonts             - Create font files only"
 	@echo "  make d64               - Create D64 disk image with all programs"
 	@echo "  make build-all         - Build all release targets"
@@ -82,7 +83,18 @@ help:
 	@echo "  make c-ime-test        - Build and run C IME test program"
 	@echo "  make c-clean           - Remove C build artifacts"
 	@echo ""
-	@echo "QE Text Editor targets:"
+	@echo "Oscar64 targets:"
+	@echo "  make oscar-build       - Build hello with Oscar64"
+	@echo "  make oscar-hello       - Build and run hello (Oscar64)"
+	@echo "  make oscar-qe-build    - Build QE with Oscar64"
+	@echo "  make oscar-qe-run      - Build and run QE (Oscar64)"
+	@echo "  make oscar-crt-build   - Build EasyFlash CRT (Oscar64)"
+	@echo "  make oscar-crt-run     - Build and run EasyFlash CRT (Oscar64)"
+	@echo "  make oscar-clean       - Remove Oscar64 hello build artifacts"
+	@echo "  make oscar-qe-clean    - Remove Oscar64 QE build artifacts"
+	@echo "  make oscar-crt-clean   - Remove Oscar64 EasyFlash CRT build artifacts"
+	@echo ""
+	@echo "QE Text Editor targets (llvm-mos):"
 	@echo "  make qe-build          - Build QE text editor"
 	@echo "  make qe-run            - Build and run QE text editor"
 	@echo "  make qe-test           - Build and run QE test program"
@@ -187,6 +199,16 @@ crt: $(BASIC_CRT)
 .PHONY: crt-strings
 crt-strings: $(STRINGS_CRT)
 
+# Create CRT with SKK-JISYO.M (larger dictionary, not included in repo due to license)
+.PHONY: crt-skk-jisyo-m
+crt-skk-jisyo-m:
+	@if [ ! -f "$(DICCONV_DIR)/SKK-JISYO.M" ]; then \
+		echo "Error: $(DICCONV_DIR)/SKK-JISYO.M not found"; \
+		echo "Please download SKK-JISYO.M and place it in $(DICCONV_DIR)/"; \
+		exit 1; \
+	fi
+	@$(MAKE) DICT_FILE=SKK-JISYO.M $(BASIC_CRT)
+
 # Create font files only
 .PHONY: fonts
 fonts: $(FONT_GOTHIC_BIN) $(FONT_MINCHO_BIN) $(FONT_JISX0201_BIN)
@@ -270,7 +292,7 @@ clean:
 	@echo "Cleanup completed"
 
 .PHONY: clean-all
-clean-all: clean c-clean qe-clean
+clean-all: clean c-clean qe-clean oscar-clean oscar-qe-clean oscar-crt-clean
 	@echo "Removing all generated files..."
 	@rm -rf $(BUILD_DIR)
 	@cd $(FONTCONV_DIR) && $(MAKE) clean
@@ -345,6 +367,76 @@ c-clean:
 	@echo "Removing C build artifacts..."
 	@rm -rf $(C_BUILD_DIR)
 	@echo "C cleanup completed"
+
+# Oscar64 targets
+OSCAR_DIR := $(C_DIR)/oscar64
+
+.PHONY: oscar-build
+oscar-build:
+	@echo "=== Building Oscar64 version ==="
+	@cd $(OSCAR_DIR) && $(MAKE)
+
+.PHONY: oscar-hello
+oscar-hello: oscar-build $(BASIC_CRT)
+	@echo "=== Running hello.prg (Oscar64) ==="
+	@if which $(EMU_COMMAND) >/dev/null 2>&1; then \
+		"$(EMU_COMMAND)" $(EMU_CARTRIDGE_OPT) "$(BASIC_CRT)" $(EMU_AUTOSTART_OPT) "$(OSCAR_DIR)/hello.prg" $(EMU_EXTRA_OPTS); \
+	else \
+		echo "Error: Emulator command not found: $(EMU_COMMAND)"; \
+		exit 1; \
+	fi
+
+.PHONY: oscar-clean
+oscar-clean:
+	@echo "Removing Oscar64 build artifacts..."
+	@cd $(OSCAR_DIR) && $(MAKE) clean
+
+# Oscar64 QE targets
+OSCAR_QE_DIR := $(C_DIR)/oscar64_qe
+
+.PHONY: oscar-qe-build
+oscar-qe-build:
+	@echo "=== Building QE with Oscar64 ==="
+	@cd $(OSCAR_QE_DIR) && $(MAKE)
+
+.PHONY: oscar-qe-run
+oscar-qe-run: oscar-qe-build $(BASIC_CRT)
+	@echo "=== Running qe.prg (Oscar64) ==="
+	@if which $(EMU_COMMAND) >/dev/null 2>&1; then \
+		"$(EMU_COMMAND)" $(EMU_CARTRIDGE_OPT) "$(BASIC_CRT)" $(EMU_AUTOSTART_OPT) "$(OSCAR_QE_DIR)/qe.prg" $(EMU_EXTRA_OPTS); \
+	else \
+		echo "Error: Emulator command not found: $(EMU_COMMAND)"; \
+		exit 1; \
+	fi
+
+.PHONY: oscar-qe-clean
+oscar-qe-clean:
+	@echo "Removing Oscar64 QE build artifacts..."
+	@cd $(OSCAR_QE_DIR) && $(MAKE) clean
+
+# Oscar64 EasyFlash CRT targets
+OSCAR_CRT_DIR := $(C_DIR)/oscar64_crt
+
+.PHONY: oscar-crt-build
+oscar-crt-build:
+	@echo "=== Building Oscar64 EasyFlash CRT ==="
+	@if ! which oscar64 >/dev/null 2>&1; then \
+		echo "Error: oscar64 not found. Please install Oscar64 compiler."; \
+		exit 1; \
+	fi
+	@cd $(OSCAR_CRT_DIR) && $(MAKE)
+	@echo "Oscar64 EasyFlash CRT build completed"
+
+.PHONY: oscar-crt-run
+oscar-crt-run: oscar-crt-build
+	@echo "=== Running EasyFlash CRT (Oscar64) ==="
+	@cd $(OSCAR_CRT_DIR) && $(MAKE) run
+
+.PHONY: oscar-crt-clean
+oscar-crt-clean:
+	@echo "Removing Oscar64 EasyFlash CRT build artifacts..."
+	@cd $(OSCAR_CRT_DIR) && $(MAKE) clean
+	@echo "Oscar64 EasyFlash CRT cleanup completed"
 
 # QE Text Editor targets
 .PHONY: qe-build
