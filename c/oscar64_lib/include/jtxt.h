@@ -78,6 +78,7 @@ void jtxt_bcls(void);
 void jtxt_blocate(uint8_t x, uint8_t y);
 void jtxt_bputc(uint8_t char_code);
 void jtxt_bputs(const char* str);
+void jtxt_bputs_fast(const char* str);
 void jtxt_bnewline(void);
 void jtxt_bbackspace(void);
 void jtxt_bcolor(uint8_t fg, uint8_t bg);

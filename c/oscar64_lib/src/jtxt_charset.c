@@ -10,6 +10,22 @@ void jtxt_copy_charset_to_ram(void) {
   memcpy((void *)JTXT_CHARSET_RAM, (void *)JTXT_CHARSET_ROM, 2048);
 }
 
+// Lookup table: ch * 94 for ch = 0..83 (JIS X 0208 row indices)
+// Eliminates ~90 cycle shift-based multiply per kanji character
+static const uint16_t row_times_94[84] = {
+       0,   94,  188,  282,  376,  470,  564,  658,  //  0- 7
+     752,  846,  940, 1034, 1128, 1222, 1316, 1410,  //  8-15
+    1504, 1598, 1692, 1786, 1880, 1974, 2068, 2162,  // 16-23
+    2256, 2350, 2444, 2538, 2632, 2726, 2820, 2914,  // 24-31
+    3008, 3102, 3196, 3290, 3384, 3478, 3572, 3666,  // 32-39
+    3760, 3854, 3948, 4042, 4136, 4230, 4324, 4418,  // 40-47
+    4512, 4606, 4700, 4794, 4888, 4982, 5076, 5170,  // 48-55
+    5264, 5358, 5452, 5546, 5640, 5734, 5828, 5922,  // 56-63
+    6016, 6110, 6204, 6298, 6392, 6486, 6580, 6674,  // 64-71
+    6768, 6862, 6956, 7050, 7144, 7238, 7332, 7426,  // 72-79
+    7520, 7614, 7708, 7802                            // 80-83
+};
+
 uint16_t jtxt_sjis_to_offset(uint16_t sjis_code) {
   uint8_t ch = (sjis_code >> 8) & 0xFF;
   uint8_t ch2 = sjis_code & 0xFF;
@@ -33,7 +49,11 @@ uint16_t jtxt_sjis_to_offset(uint16_t sjis_code) {
     ch2 -= 0x9F;
   }
 
-  return ((uint16_t)ch * 94 + ch2) * 8 + JTXT_JISX0208_OFFSET;
+  // ch * 94 via lookup table (eliminates ~90 cycle shift multiply)
+  uint16_t row = row_times_94[ch];
+
+  // (row + ch2) * 8 = (row + ch2) << 3
+  return ((row + (uint16_t)ch2) << 3) + JTXT_JISX0208_OFFSET;
 }
 
 void jtxt_define_jisx0201(uint8_t jisx0201_code) {
@@ -75,8 +95,8 @@ void jtxt_define_jisx0201(uint8_t jisx0201_code) {
 
 void jtxt_define_kanji(uint16_t sjis_code) {
   uint16_t kanji_offset = jtxt_sjis_to_offset(sjis_code);
-  uint8_t bank = (kanji_offset / 8192) + 1;
-  uint16_t in_bank_offset = kanji_offset % 8192;
+  uint8_t bank = (uint8_t)(kanji_offset >> 13) + 1;   // / 8192
+  uint16_t in_bank_offset = kanji_offset & 0x1FFF;    // % 8192
 
   // Begin ROM access with $01 register backup
   jtxt_rom_access_begin();

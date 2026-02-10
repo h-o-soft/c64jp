@@ -50,11 +50,31 @@ run: $(OUTPUT_CRT)
 		exit 1; \
 	fi
 
+# Build benchmark
+BENCH_SOURCE = bench_bitmap.c
+BENCH_CRT = bench_bitmap.crt
+
+.PHONY: bench
+bench: $(BENCH_CRT)
+
+$(BENCH_CRT): $(BENCH_SOURCE) $(JTXT_SOURCES)
+	@echo "=== Building Bitmap Benchmark ==="
+	$(OSCAR64) $(OSCAR_FLAGS) -o=$(BENCH_CRT) $(BENCH_SOURCE) $(JTXT_SOURCES)
+	@echo "Benchmark CRT created: $(BENCH_CRT)"
+	@ls -lh $(BENCH_CRT)
+
+# Run benchmark in emulator
+.PHONY: run-bench
+run-bench: $(BENCH_CRT)
+	@echo "=== Running Benchmark ==="
+	$(EMU) $(EMU_OPTS) $(BENCH_CRT)
+
 # Clean build artifacts
 .PHONY: clean
 clean:
 	@echo "Cleaning build artifacts..."
 	@rm -f $(OUTPUT_CRT) $(TARGET).asm $(TARGET).lbl $(TARGET).map $(TARGET).int
+	@rm -f $(BENCH_CRT) bench_bitmap.asm bench_bitmap.lbl bench_bitmap.map bench_bitmap.int
 	@echo "Cleanup completed"
 
 # Show help
