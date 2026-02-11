@@ -23,15 +23,13 @@ This editor is a port of [qe](https://github.com/davidgiven/cpm65/blob/master/ap
 oscar64_qe/
 ├── Makefile           # Build configuration
 ├── include/
-│   ├── ime.h          # IME header
 │   └── screen.h       # Screen control header
 └── src/
     ├── qe.c           # Main editor
-    ├── screen.c       # Screen control
-    └── ime.c          # Kana-kanji conversion
+    └── screen.c       # Screen control
 ```
 
-The jtxt library is referenced from `../oscar64_lib/`.
+The jtxt library and IME are referenced from `../oscar64_lib/`.
 
 ## Building
 
@@ -110,9 +108,10 @@ make oscar-qe-run
 
 ## Related Projects
 
-- `../oscar64_lib/` - Shared jtxt library
+- `../oscar64_lib/` - Shared library (jtxt, IME, c64u network)
 - `../oscar64/` - Basic sample
 - `../oscar64_crt/` - EasyFlash version
+- `../oscar64_term/` - Terminal (Ultimate II+ network)
 - `../../src/qe/` - llvm-mos version
 
 ## License

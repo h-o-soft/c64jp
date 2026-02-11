@@ -126,8 +126,10 @@ Download and install from https://github.com/drmortalwombat/oscar64
 
 ## Related Projects
 
+- `../oscar64_lib/` - Shared library (jtxt, IME, c64u network)
 - `../oscar64/` - PRG version (uses external MagicDesk cartridge)
 - `../oscar64_qe/` - QE text editor (uses external cartridge)
+- `../oscar64_term/` - Terminal (Ultimate II+ network)
 
 ## License
 

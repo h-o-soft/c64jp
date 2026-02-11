@@ -1,8 +1,17 @@
 #include "jtxt.h"
 #include "c64_oscar.h"
 #include <string.h>
+#ifdef JTXT_EASYFLASH
+#include <c64/easyflash.h>
+#endif
 
-// Global library state
+#ifdef JTXT_MAGICDESK_CRT
+#pragma code(mcode)
+#pragma data(mdata)
+#endif
+
+#ifndef JTXT_CRT
+// PRG: define and initialize jtxt_state here
 jtxt_state_t jtxt_state = {.chr_start = 128,
                            .chr_count = 64,
                            .current_index = 128,
@@ -17,38 +26,54 @@ jtxt_state_t jtxt_state = {.chr_start = 128,
                            .bitmap_top_row = 0,
                            .bitmap_bottom_row = 24,
                            .bitmap_window_enabled = false};
+#endif
+// CRT: jtxt_state must be defined in main application (RAM region)
 
 // ROM access management
 static uint8_t saved_01_register = 0;
 
-// Internal macros for memory access
-#define POKE(addr, val) (*(volatile uint8_t *)(addr) = (val))
-#define PEEK(addr) (*(volatile uint8_t *)(addr))
-#define POKEW(addr, val) (*(volatile uint16_t *)(addr) = (val))
-#define PEEKW(addr) (*(volatile uint16_t *)(addr))
-
 void jtxt_init(uint8_t mode) {
+#ifdef JTXT_CRT
+  // CRT: manual initialization (no C initializer with -n flag)
+  jtxt_state.chr_start = 128;
+  jtxt_state.chr_count = 64;
+  jtxt_state.current_index = 128;
+  jtxt_state.screen_pos = JTXT_SCREEN_RAM;
+  jtxt_state.color_pos = JTXT_COLOR_RAM;
+  jtxt_state.current_color = 1;
+  jtxt_state.sjis_first_byte = 0;
+  jtxt_state.display_mode = JTXT_TEXT_MODE;
+  jtxt_state.cursor_x = 0;
+  jtxt_state.cursor_y = 0;
+  jtxt_state.bitmap_color = (1 << 4) | 0;
+  jtxt_state.bitmap_top_row = 0;
+  jtxt_state.bitmap_bottom_row = 24;
+  jtxt_state.bitmap_window_enabled = false;
+#endif
+
   // Set display mode
   jtxt_set_mode(mode);
 
-  // Set MagicDesk to bank 0
-  // POKE(JTXT_BANK_REG, 0);
+  // Set cartridge bank to 0
   *((volatile char *)JTXT_BANK_REG) = 0;
 
   // Disable interrupts
   SEI();
   POKE(0xDC0E, PEEK(0xDC0E) & 0xFE);
 
-  // Memory map: make character ROM visible
-  POKE(0x01, 0x33);
+  // Memory map: save and make character ROM visible
+  {
+    uint8_t saved_01 = PEEK(0x01);
+    POKE(0x01, 0x33);
 
-  // Copy charset to RAM in text mode only
-  if (jtxt_state.display_mode == JTXT_TEXT_MODE) {
-    jtxt_copy_charset_to_ram();
+    // Copy charset to RAM in text mode only
+    if (jtxt_state.display_mode == JTXT_TEXT_MODE) {
+      jtxt_copy_charset_to_ram();
+    }
+
+    // Restore memory map (preserve LORAM bit state)
+    POKE(0x01, saved_01);
   }
-
-  // Restore memory map
-  POKE(0x01, 0x37);
   CLI();
 
   // Re-enable interrupts
@@ -72,8 +97,7 @@ void jtxt_cleanup(void) {
   // Reset VIC registers
   POKE(0xD018, (PEEK(0xD018) & 0x0F) | 0x10);
 
-  // Reset MagicDesk to bank 0
-  // POKE(JTXT_BANK_REG, 0);
+  // Reset cartridge bank to 0
   *((volatile char *)JTXT_BANK_REG) = 0;
 }
 
@@ -223,7 +247,7 @@ void jtxt_rom_access_begin(void) {
   // Save current $01 register state
   saved_01_register = PEEK(0x01);
 
-  // Enable BASIC ROM and LO ROM (bit 0 = 1) to access MagicDesk cartridge
+  // Enable LO ROM (bit 0 = 1) to access cartridge ROM
   POKE(0x01, saved_01_register | 0x01);
 }
 

@@ -156,6 +156,9 @@ make TARGET=hello_resource run-strings
 | `make oscar-crt-run` | EasyFlash CRTをビルドして実行 |
 | `make oscar-clean` | Oscar64ビルド成果物を削除 |
 
+### ターミナル（Ultimate II+ネットワーク）
+ターミナルアプリケーションは `c/oscar64_term/` で個別にビルドします。詳しくは [c/oscar64_term/README.md](c/oscar64_term/README.md) を参照してください。
+
 ### 設定可能な変数
 ```bash
 # ビルドするプログラムを指定
@@ -183,10 +186,11 @@ c64-kanji-rom/
 │       ├── swiftlink.p8   # SwiftLink通信ライブラリ
 │       └── *.p8           # 各種テストプログラム
 ├── c/                      # C言語版
-│   ├── oscar64_lib/       # Oscar64共有jtxtライブラリ
+│   ├── oscar64_lib/       # Oscar64共有ライブラリ（jtxt, IME, c64uネットワーク）
 │   ├── oscar64/           # Oscar64 helloサンプル
 │   ├── oscar64_qe/        # Oscar64 QEエディタ
 │   ├── oscar64_crt/       # Oscar64 EasyFlash CRT版
+│   ├── oscar64_term/      # ターミナル（Ultimate II+ネットワーク）
 │   └── src/               # llvm-mos版ソース
 ├── fontconv/               # フォント変換ツール（美咲フォント→バイナリ）
 │   ├── mkfont.py          # フォント変換スクリプト
@@ -364,7 +368,6 @@ Hiroshi OGINO / H.O SOFT Inc.
 - **辞書の改良**: より高精度な変換のための辞書データ強化(特に固有名詞の追加)
 
 ### アプリケーション開発
-- **簡易テキストエディタ**: 日本語入力対応のテキストエディタ作成
 - **通信アプリ**: エスケープシーケンスの簡易的な対応
 
 ## 謝辞

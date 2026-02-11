@@ -9,15 +9,20 @@ TARGET = hello_easyflash
 SOURCE = $(TARGET).c
 OUTPUT_CRT = $(TARGET).crt
 
-# Source files
-JTXT_SOURCES = src/jtxt.c src/jtxt_bitmap.c src/jtxt_charset.c \
-               src/jtxt_resource.c src/jtxt_text.c
+# Shared jtxt library
+LIB_DIR = ../oscar64_lib
+
+# Source files (shared with oscar64_lib)
+JTXT_SOURCES = $(LIB_DIR)/src/jtxt.c $(LIB_DIR)/src/jtxt_bitmap.c \
+               $(LIB_DIR)/src/jtxt_charset.c $(LIB_DIR)/src/jtxt_resource.c \
+               $(LIB_DIR)/src/jtxt_text.c
 
 # Oscar64 compiler options for EasyFlash
 # -n: No startup code (we provide our own)
 # -tf=crt: Target format is CRT (EasyFlash, 16KB banks)
-# -i: Include directory
-OSCAR_FLAGS = -n -tf=crt -i=include
+# -dJTXT_EASYFLASH: Enable EasyFlash-specific code paths
+# -i: Include directory for jtxt library headers
+OSCAR_FLAGS = -n -tf=crt -dJTXT_EASYFLASH -i=$(LIB_DIR)/include
 
 # Emulator configuration
 EMU = x64sc
@@ -68,6 +73,22 @@ $(BENCH_CRT): $(BENCH_SOURCE) $(JTXT_SOURCES)
 run-bench: $(BENCH_CRT)
 	@echo "=== Running Benchmark ==="
 	$(EMU) $(EMU_OPTS) $(BENCH_CRT)
+
+# UII+ test (no jtxt, minimal CRT)
+UII_TEST_CRT = test_uii.crt
+
+.PHONY: test-uii
+test-uii: $(UII_TEST_CRT)
+
+$(UII_TEST_CRT): test_uii.c
+	@echo "=== Building UII+ CRT Test ==="
+	$(OSCAR64) -n -tf=crt -o=$(UII_TEST_CRT) test_uii.c
+	@echo "Test CRT created: $(UII_TEST_CRT)"
+	@ls -lh $(UII_TEST_CRT)
+
+.PHONY: run-uii
+run-uii: $(UII_TEST_CRT)
+	$(EMU) $(EMU_OPTS) $(UII_TEST_CRT)
 
 # Clean build artifacts
 .PHONY: clean

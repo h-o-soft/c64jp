@@ -2,6 +2,11 @@
 #include "jtxt.h"
 #include "c64_oscar.h"
 
+#ifdef JTXT_MAGICDESK_CRT
+#pragma code(icode)
+#pragma data(idata)
+#endif
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -157,6 +162,8 @@ static uint8_t ime_output_length = 0;
 static uint8_t prev_display_length = 0;
 static uint8_t prev_display_chars = 0;
 static uint8_t prev_romaji_pos = 0;
+
+static uint8_t saved_bottom_row = 24;
 
 static uint8_t current_entry_length = 0;
 
@@ -1121,7 +1128,8 @@ static void show_ime_status(void) {
 }
 
 static void activate_ime_input(void) {
-    jtxt_bwindow(0, 23);
+    saved_bottom_row = jtxt_state.bitmap_bottom_row;
+    jtxt_bwindow(jtxt_state.bitmap_top_row, 23);
     clear_ime_input_line();
     show_ime_status();
 }
@@ -1139,6 +1147,9 @@ static void deactivate_ime_input_internal(void) {
     verb_candidate_count = 0;
     match_candidate_count = 0;
     passthrough_key = 0;
+
+    jtxt_bwindow(jtxt_state.bitmap_top_row, saved_bottom_row);
+    jtxt_bwindow_enable();
 }
 
 static void clear_ime_input_area(void) {
@@ -1666,10 +1677,21 @@ static uint8_t read_rom_byte(uint8_t bank, uint16_t offset) {
     uint8_t saved_01;
     uint8_t value;
 
+#ifdef JTXT_EASYFLASH
+    // EasyFlash: map virtual 8KB banks to physical 16KB banks
+    // Virtual banks 10-27 → Physical banks 6-14 (2 virtual per 1 physical)
+    uint8_t virt = (uint8_t)(bank - IME_DICTIONARY_START_BANK);
+    uint8_t phys_bank = (uint8_t)(virt / 2 + IME_DIC_EF_START_BANK);
+    uint16_t phys_offset = (uint16_t)((virt & 1) * 0x2000 + offset);
+#else
+    uint8_t phys_bank = bank;
+    uint16_t phys_offset = offset;
+#endif
+
     saved_01 = PEEK(0x01);
     POKE(0x01, saved_01 | 0x01);
-    POKE(BANK_REG, bank);
-    value = PEEK(ROM_BASE + offset);
+    POKE(BANK_REG, phys_bank);
+    value = PEEK(ROM_BASE + phys_offset);
     POKE(0x01, saved_01);
     return value;
 }

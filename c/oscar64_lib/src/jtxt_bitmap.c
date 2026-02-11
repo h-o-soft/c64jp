@@ -1,9 +1,17 @@
 #include "c64_oscar.h"
 #include "jtxt.h"
 #include <string.h>
+#ifdef JTXT_EASYFLASH
+#include <c64/easyflash.h>
+#endif
 
-// TODO どうにかする
-const bool is_auto_scroll = false;
+#ifdef JTXT_MAGICDESK_CRT
+#pragma code(mcode)
+#pragma data(mdata)
+#endif
+
+// Auto line-wrap: when cursor_x >= 40, automatically call jtxt_bnewline()
+static bool is_auto_scroll = false;
 
 // Use inline assembly for 8-byte font copy (saves ~28 cycles/kanji)
 // Set to 0 to use original C volatile pointer copy
@@ -61,6 +69,8 @@ void jtxt_bwindow(uint8_t top_row, uint8_t bottom_row) {
 void jtxt_bwindow_enable(void) { jtxt_state.bitmap_window_enabled = true; }
 
 void jtxt_bwindow_disable(void) { jtxt_state.bitmap_window_enabled = false; }
+void jtxt_bautowrap_enable(void) { is_auto_scroll = true; }
+void jtxt_bautowrap_disable(void) { is_auto_scroll = false; }
 
 void jtxt_bnewline(void) {
     jtxt_state.cursor_x = 0;
@@ -146,13 +156,25 @@ void jtxt_draw_font_to_bitmap(uint16_t char_code) {
         }
 
         src = JTXT_ROM_BASE + ((uint16_t)code << 3);
-        bank = 1;
+        bank = 1 + JTXT_BANK_OFFSET;
     } else {
         // Double-byte: Kanji
         uint16_t kanji_offset = jtxt_sjis_to_offset(char_code);
-        // MagicDesk: 8KB banks
-        bank = (uint8_t)(kanji_offset >> 13) + 1;
+#ifdef JTXT_EASYFLASH
+        // EasyFlash: 16KB banks, Bank 1 has JIS X 0201 (2KB) + Kanji part 1
+        if (kanji_offset < 14336) {
+            bank = 1;
+            src = JTXT_ROM_BASE + kanji_offset + 2048;
+        } else {
+            uint16_t adjusted = kanji_offset - 14336;
+            bank = (uint8_t)(adjusted >> 14) + 2;
+            src = JTXT_ROM_BASE + (adjusted & 0x3FFF);
+        }
+#else
+        // MagicDesk: 8KB banks (+ JTXT_BANK_OFFSET for CRT)
+        bank = (uint8_t)(kanji_offset >> 13) + 1 + JTXT_BANK_OFFSET;
         src = JTXT_ROM_BASE + (kanji_offset & 0x1FFF);
+#endif
     }
 
     // ROM access + bank switch + 8-byte copy (all inline)
@@ -341,7 +363,7 @@ void jtxt_bputs_fast(const char* str) {
                 *(volatile uint32_t *)(dst)     = 0;
                 *(volatile uint32_t *)(dst + 4) = 0;
             } else {
-                *((volatile char *)JTXT_BANK_REG) = 1;
+                *((volatile char *)JTXT_BANK_REG) = 1 + JTXT_BANK_OFFSET;
                 uint16_t src = JTXT_ROM_BASE + ((uint16_t)code << 3);
 #if USE_ASM_COPY
                 __asm volatile {
@@ -382,10 +404,25 @@ void jtxt_bputs_fast(const char* str) {
 #endif
             }
         } else {
-            // Double-byte: Kanji (MagicDesk: 8KB banks)
+            // Double-byte: Kanji
             uint16_t kanji_offset = jtxt_sjis_to_offset(char_code);
-            uint8_t bank = (uint8_t)(kanji_offset >> 13) + 1;
-            uint16_t src = JTXT_ROM_BASE + (kanji_offset & 0x1FFF);
+            uint8_t bank;
+            uint16_t src;
+#ifdef JTXT_EASYFLASH
+            // EasyFlash: 16KB banks
+            if (kanji_offset < 14336) {
+                bank = 1;
+                src = JTXT_ROM_BASE + kanji_offset + 2048;
+            } else {
+                uint16_t adjusted = kanji_offset - 14336;
+                bank = (uint8_t)(adjusted >> 14) + 2;
+                src = JTXT_ROM_BASE + (adjusted & 0x3FFF);
+            }
+#else
+            // MagicDesk: 8KB banks (+ JTXT_BANK_OFFSET for CRT)
+            bank = (uint8_t)(kanji_offset >> 13) + 1 + JTXT_BANK_OFFSET;
+            src = JTXT_ROM_BASE + (kanji_offset & 0x1FFF);
+#endif
             *((volatile char *)JTXT_BANK_REG) = bank;
 #if USE_ASM_COPY
             __asm volatile {
