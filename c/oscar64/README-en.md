@@ -96,9 +96,10 @@ int main(void) {
 
 ## Related Projects
 
-- `../oscar64_lib/` - Shared jtxt library
+- `../oscar64_lib/` - Shared library (jtxt, IME, c64u network)
 - `../oscar64_qe/` - QE text editor (with IME)
 - `../oscar64_crt/` - EasyFlash version (standalone cartridge)
+- `../oscar64_term/` - Terminal (Ultimate II+ network)
 
 ## License
 

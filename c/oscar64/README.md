@@ -96,9 +96,10 @@ int main(void) {
 
 ## 関連プロジェクト
 
-- `../oscar64_lib/` - 共有jtxtライブラリ
+- `../oscar64_lib/` - 共有ライブラリ（jtxt, IME, c64uネットワーク）
 - `../oscar64_qe/` - QEテキストエディタ（IME付き）
 - `../oscar64_crt/` - EasyFlash版（カートリッジ単体）
+- `../oscar64_term/` - ターミナル（Ultimate II+ネットワーク）
 
 ## ライセンス
 

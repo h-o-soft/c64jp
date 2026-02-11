@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-// MagicDesk constants
+// Cartridge constants (both MagicDesk and EasyFlash use $DE00)
 #define JTXT_ROM_BASE         0x8000U
 #define JTXT_BANK_REG         0xDE00U
 
@@ -22,9 +22,27 @@
 #define JTXT_TEXT_MODE        0
 #define JTXT_BITMAP_MODE      1
 
+// CRT mode detection
+#if defined(JTXT_EASYFLASH) || defined(JTXT_MAGICDESK_CRT)
+  #define JTXT_CRT 1
+#endif
+
+// Bank offset: MagicDesk CRT uses banks 0-1 for code, so fonts/dict shift by 1
+#ifdef JTXT_MAGICDESK_CRT
+  #define JTXT_BANK_OFFSET 1
+#else
+  #define JTXT_BANK_OFFSET 0
+#endif
+
 // Font offsets
 #define JTXT_JISX0201_SIZE    2048U
-#define JTXT_JISX0208_OFFSET  JTXT_JISX0201_SIZE
+#ifdef JTXT_EASYFLASH
+  // EasyFlash: kanji offset starts at 0 (JIS X 0201 handled separately in bank layout)
+  #define JTXT_JISX0208_OFFSET  0U
+#else
+  // MagicDesk: kanji data follows JIS X 0201 in same bank sequence
+  #define JTXT_JISX0208_OFFSET  JTXT_JISX0201_SIZE
+#endif
 
 // String resource constants
 #define JTXT_STRING_RESOURCE_BANK 36
@@ -78,12 +96,15 @@ void jtxt_bcls(void);
 void jtxt_blocate(uint8_t x, uint8_t y);
 void jtxt_bputc(uint8_t char_code);
 void jtxt_bputs(const char* str);
+void jtxt_bputs_fast(const char* str);
 void jtxt_bnewline(void);
 void jtxt_bbackspace(void);
 void jtxt_bcolor(uint8_t fg, uint8_t bg);
 void jtxt_bwindow(uint8_t top_row, uint8_t bottom_row);
 void jtxt_bwindow_enable(void);
 void jtxt_bwindow_disable(void);
+void jtxt_bautowrap_enable(void);
+void jtxt_bautowrap_disable(void);
 void jtxt_bscroll_up(void);
 
 // String resource functions

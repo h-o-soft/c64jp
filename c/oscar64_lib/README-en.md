@@ -3,32 +3,48 @@
 | [English](README-en.md) | [日本語](README.md) |
 |---------------------------|------------------------|
 
-Japanese text display library for the Oscar64 compiler. Uses font data stored in MagicDesk cartridge to display Japanese text on Commodore 64.
+Shared library for the Oscar64 compiler. Provides Japanese text display (jtxt), Kana-Kanji conversion (IME), and Ultimate II+ network communication (c64u) functionality.
 
 ## Overview
 
-This library is shared by `c/oscar64/` and `c/oscar64_qe/`. It provides Japanese display functionality when used with the MagicDesk cartridge (`c64jpkanji.crt`).
+This library is shared by `c/oscar64/`, `c/oscar64_qe/`, `c/oscar64_crt/`, and `c/oscar64_term/`. It provides Japanese display and input functionality when used with the MagicDesk cartridge (`c64jpkanji.crt`).
 
 ## Features
 
+### jtxt (Japanese Display)
 - **Text Mode**: Fast Japanese display using PCG (Programmable Character Generator)
 - **Bitmap Mode**: Japanese display on 320x200 pixel bitmap screen
 - **Shift-JIS Support**: Handle text using standard character encoding
 - **String Resources**: Load predefined strings from cartridge
+
+### IME (Kana-Kanji Conversion)
+- Romaji to Hiragana to Kanji single-clause conversion
+- High-speed dictionary lookup using ROM cartridge data
+- Verb conjugation support (okuriari conversion)
+- Learning function (candidate selection frequency tracking)
+
+### c64u (Ultimate II+ Network Communication)
+- TCP/IP communication via Ultimate II+ cartridge network features
+- Socket creation, connection, send/receive, and disconnection
+- PETSCII/ASCII character code conversion
 
 ## File Structure
 
 ```
 oscar64_lib/
 ├── include/
-│   ├── jtxt.h         # Main header
-│   └── c64_oscar.h    # Oscar64-specific definitions
+│   ├── jtxt.h           # Japanese display header
+│   ├── ime.h            # Kana-Kanji conversion header
+│   ├── c64u_network.h   # Ultimate II+ network communication header
+│   └── c64_oscar.h      # Oscar64-specific definitions
 └── src/
-    ├── jtxt.c         # Core library
-    ├── jtxt_bitmap.c  # Bitmap mode functions
-    ├── jtxt_charset.c # Character definition functions
-    ├── jtxt_resource.c # String resource functions
-    └── jtxt_text.c    # Text mode functions
+    ├── jtxt.c           # Core library
+    ├── jtxt_bitmap.c    # Bitmap mode functions
+    ├── jtxt_charset.c   # Character definition functions
+    ├── jtxt_resource.c  # String resource functions
+    ├── jtxt_text.c      # Text mode functions
+    ├── ime.c            # Kana-Kanji conversion
+    └── c64u_network.c   # Ultimate II+ network communication
 ```
 
 ## API Reference
@@ -108,7 +124,7 @@ int main(void) {
 
 ## Building
 
-This library is not built directly. It is referenced by other projects (`oscar64/`, `oscar64_qe/`).
+This library is not built directly. It is referenced by other projects (`oscar64/`, `oscar64_qe/`, `oscar64_term/`, etc.).
 
 ```bash
 # When using from oscar64/
@@ -117,6 +133,10 @@ make
 
 # When using from oscar64_qe/
 cd ../oscar64_qe
+make
+
+# When using from oscar64_term/
+cd ../oscar64_term
 make
 ```
 
@@ -137,6 +157,7 @@ make
 - `../oscar64/` - Basic sample (Hello World)
 - `../oscar64_qe/` - QE text editor (with IME)
 - `../oscar64_crt/` - EasyFlash version (standalone cartridge)
+- `../oscar64_term/` - Terminal (Ultimate II+ network, Telnet, XMODEM)
 
 ## License
 

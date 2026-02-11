@@ -12,7 +12,7 @@ OUTPUT = $(TARGET).prg
 LIB_DIR = ../oscar64_lib
 
 # Source files
-SOURCES = src/qe.c src/screen.c src/ime.c \
+SOURCES = src/qe.c src/screen.c $(LIB_DIR)/src/ime.c \
           $(LIB_DIR)/src/jtxt.c $(LIB_DIR)/src/jtxt_bitmap.c \
           $(LIB_DIR)/src/jtxt_charset.c $(LIB_DIR)/src/jtxt_resource.c \
           $(LIB_DIR)/src/jtxt_text.c

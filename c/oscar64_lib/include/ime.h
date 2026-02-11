@@ -4,8 +4,18 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define IME_DICTIONARY_START_BANK 10
-#define IME_DICTIONARY_END_BANK   27
+#ifdef JTXT_MAGICDESK_CRT
+  #define IME_DICTIONARY_START_BANK 11
+  #define IME_DICTIONARY_END_BANK   28
+#else
+  #define IME_DICTIONARY_START_BANK 10
+  #define IME_DICTIONARY_END_BANK   27
+#endif
+
+#ifdef JTXT_EASYFLASH
+// EasyFlash: dictionary physical bank start (after font banks 1-5)
+#define IME_DIC_EF_START_BANK 6
+#endif
 
 #define IME_EVENT_NONE            0
 #define IME_EVENT_CONFIRMED       1

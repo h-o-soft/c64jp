@@ -2,16 +2,17 @@
 #include "jtxt.h"
 #include <string.h>
 
-#define POKE(addr, val) (*(volatile uint8_t *)(addr) = (val))
-#define PEEK(addr) (*(volatile uint8_t *)(addr))
+#ifdef JTXT_MAGICDESK_CRT
+#pragma code(mcode)
+#pragma data(mdata)
+#endif
 
 bool jtxt_load_string_resource(uint8_t resource_number) {
   // Begin ROM access with $01 register backup
   jtxt_rom_access_begin();
 
   // Switch to string resource bank
-  *((volatile char *)JTXT_BANK_REG) = JTXT_STRING_RESOURCE_BANK;
-  // POKE(JTXT_BANK_REG, JTXT_STRING_RESOURCE_BANK);
+  POKE(JTXT_BANK_REG, JTXT_STRING_RESOURCE_BANK);
 
   // Get number of strings (little-endian 4 bytes, but we only need the low
   // word)
@@ -20,7 +21,6 @@ bool jtxt_load_string_resource(uint8_t resource_number) {
 
   // Range check
   if (resource_number >= (num_strings & 0xFF)) {
-    *((volatile char *)JTXT_BANK_REG) = 0;
     POKE(JTXT_BANK_REG, 0);
     jtxt_rom_access_end();
     return false;

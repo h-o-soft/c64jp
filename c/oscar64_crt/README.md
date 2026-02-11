@@ -123,8 +123,10 @@ https://github.com/drmortalwombat/oscar64 からダウンロード・インス�
 
 ## 関連プロジェクト
 
+- `../oscar64_lib/` - 共有ライブラリ（jtxt, IME, c64uネットワーク）
 - `../oscar64/` - PRG 版 (外部 MagicDesk カートリッジ使用)
 - `../oscar64_qe/` - QE テキストエディタ (外部カートリッジ使用)
+- `../oscar64_term/` - ターミナル（Ultimate II+ネットワーク）
 
 ## ライセンス
 

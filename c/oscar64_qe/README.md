@@ -23,15 +23,13 @@ Oscar64コンパイラでビルドされたCommodore 64用日本語対応テキ�
 oscar64_qe/
 ├── Makefile           # ビルド設定
 ├── include/
-│   ├── ime.h          # IMEヘッダ
 │   └── screen.h       # 画面制御ヘッダ
 └── src/
     ├── qe.c           # メインエディタ
-    ├── screen.c       # 画面制御
-    └── ime.c          # かな漢字変換
+    └── screen.c       # 画面制御
 ```
 
-jtxtライブラリは `../oscar64_lib/` から参照しています。
+jtxtライブラリおよびIMEは `../oscar64_lib/` から参照しています。
 
 ## ビルド方法
 
@@ -110,9 +108,10 @@ make oscar-qe-run
 
 ## 関連プロジェクト
 
-- `../oscar64_lib/` - 共有jtxtライブラリ
+- `../oscar64_lib/` - 共有ライブラリ（jtxt, IME, c64uネットワーク）
 - `../oscar64/` - 基本サンプル
 - `../oscar64_crt/` - EasyFlash版
+- `../oscar64_term/` - ターミナル（Ultimate II+ネットワーク）
 - `../../src/qe/` - llvm-mos版
 
 ## ライセンス

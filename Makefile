@@ -390,6 +390,8 @@ oscar-hello: oscar-build $(BASIC_CRT)
 oscar-clean:
 	@echo "Removing Oscar64 build artifacts..."
 	@cd $(OSCAR_DIR) && $(MAKE) clean
+	@cd $(OSCAR_QE_DIR) && $(MAKE) clean
+	@cd $(OSCAR_TERM_DIR) && $(MAKE) clean
 
 # Oscar64 QE targets
 OSCAR_QE_DIR := $(C_DIR)/oscar64_qe
@@ -437,6 +439,24 @@ oscar-crt-clean:
 	@echo "Removing Oscar64 EasyFlash CRT build artifacts..."
 	@cd $(OSCAR_CRT_DIR) && $(MAKE) clean
 	@echo "Oscar64 EasyFlash CRT cleanup completed"
+
+# Oscar64 Terminal targets
+OSCAR_TERM_DIR := $(C_DIR)/oscar64_term
+
+.PHONY: oscar-term-build
+oscar-term-build:
+	@echo "=== Building Terminal with Oscar64 ==="
+	@cd $(OSCAR_TERM_DIR) && $(MAKE)
+
+.PHONY: oscar-term-crt
+oscar-term-crt:
+	@echo "=== Building Terminal CRT with Oscar64 ==="
+	@cd $(OSCAR_TERM_DIR) && $(MAKE) crt
+
+.PHONY: oscar-term-clean
+oscar-term-clean:
+	@echo "Removing Oscar64 Terminal build artifacts..."
+	@cd $(OSCAR_TERM_DIR) && $(MAKE) clean
 
 # QE Text Editor targets
 .PHONY: qe-build
@@ -507,6 +527,9 @@ build-all:
 		echo "Building C/$$target..."; \
 		$(MAKE) -C $(C_DIR)/src/$$target || exit 1; \
 	done
+	@echo "Building Oscar64 programs..."
+	@cd $(OSCAR_QE_DIR) && $(MAKE)
+	@cd $(OSCAR_TERM_DIR) && $(MAKE)
 	@echo "All targets built successfully"
 
 .PHONY: d64
@@ -543,14 +566,24 @@ d64: build-all $(BASIC_CRT)
 			echo "  Warning: C/$$target.prg not found"; \
 		fi; \
 	done
+	@echo "Adding Oscar64 programs..."
+	@if [ -f "$(OSCAR_QE_DIR)/qe.prg" ]; then \
+		echo "  Adding qe.prg as \"qeo64\""; \
+		c1541 "$(D64_IMAGE)" -write "$(OSCAR_QE_DIR)/qe.prg" "qeo64"; \
+	fi
+	@if [ -f "$(OSCAR_TERM_DIR)/jterm.prg" ]; then \
+		echo "  Adding jterm.prg as \"jterm\""; \
+		c1541 "$(D64_IMAGE)" -write "$(OSCAR_TERM_DIR)/jterm.prg" "jterm"; \
+	fi
 	@echo "D64 disk image created: $(D64_IMAGE)"
 	@echo ""
 	@echo "Contents of $(D64_IMAGE):"
 	@c1541 "$(D64_IMAGE)" -list
 
 .PHONY: release-files
-release-files: d64
+release-files: d64 oscar-term-crt
 	@echo "=== Release Files Ready ==="
 	@echo "CRT File: $(BASIC_CRT)"
+	@echo "Terminal CRT: $(OSCAR_TERM_DIR)/jterm.crt"
 	@echo "D64 File: $(D64_IMAGE)"
-	@ls -la "$(BASIC_CRT)" "$(D64_IMAGE)"
+	@ls -la "$(BASIC_CRT)" "$(OSCAR_TERM_DIR)/jterm.crt" "$(D64_IMAGE)"

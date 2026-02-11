@@ -8,26 +8,26 @@ on:
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.x'
-        
+
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
         pip install pillow  # PIL for image processing
-        
+
     - name: Install VICE emulator (for c1541)
       run: |
         sudo apt-get update
         sudo apt-get install -y vice
-        
+
     - name: Install Prog8 compiler and 64tass
       run: |
         # Install 64tass from Ubuntu repositories
@@ -53,23 +53,33 @@ jobs:
         sudo tar -xf llvm-mos-linux.tar.xz -C /opt/llvm-mos --strip-components=1
         echo "/opt/llvm-mos/bin" >> $GITHUB_PATH
 
+    - name: Install Oscar64 compiler
+      run: |
+        # Pin to v1.32.267 due to code generation bug in later versions
+        # (assertion failure in NativeCodeGenerator.cpp CopyCode with large projects)
+        git clone --branch v1.32.267 --depth 1 https://github.com/drmortalwombat/oscar64.git /tmp/oscar64
+        make -C /tmp/oscar64/make -j$(nproc) compiler
+        sudo make -C /tmp/oscar64/make install
+        oscar64 --version || echo "Oscar64 installed"
+
     - name: Build fonts (with automatic download)
       run: make fonts
-      
+
     - name: Build dictionary
       run: make dict
-      
+
     - name: Build release files
       run: make release-files
-      
+
     - name: Get version from tag
       id: get_version
       run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-      
+
     - name: Create release package
       run: |
         mkdir -p release
         cp crt/c64jpkanji.crt release/
+        cp c/oscar64_term/jterm.crt release/
         cp prog8/build/c64jp_programs.d64 release/
         cp README.md release/
         cp README-en.md release/
@@ -83,7 +93,7 @@ jobs:
         cd release
         zip -r ../c64jp-${{ steps.get_version.outputs.VERSION }}.zip .
         cd ..
-        
+
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
@@ -94,24 +104,24 @@ jobs:
         name: C64JP ${{ steps.get_version.outputs.VERSION }}
         body: |
           # C64 日本語プロジェクト ${{ steps.get_version.outputs.VERSION }}
-          
+
           Commodore 64で日本語表示とかな漢字変換を実現するプロジェクトのリリースです。
-          
+
           詳細な使用方法は README.md および README-en.md をご参照ください。
           For detailed instructions, please refer to README.md and README-en.md.
-          
+
           ## ファイル構成
-          
-          - **c64jp-${{ steps.get_version.outputs.VERSION }}.zip** - 完全パッケージ（CRT + D64 + ドキュメント）
+
+          - **c64jp-${{ steps.get_version.outputs.VERSION }}.zip** - 完全パッケージ（CRT + D64 + ターミナルCRT + ドキュメント）
           - **c64jpkanji.crt** - MagicDesk形式ROMカートリッジ
           - **c64jp_programs.d64** - サンプルプログラム集（D64ディスクイメージ）
-          
+
           ## 使い方
-          
+
           1. CRTファイルをVICEエミュレータまたは対応フラッシュカートリッジにロード
           2. D64ファイルをディスクドライブ8にマウント
           3. `LOAD"$",8` でディレクトリ表示し、`LOAD"プログラム名",8,1` で実行
-          
+
           ## 含まれるプログラム
 
           ### Prog8版
@@ -123,13 +133,16 @@ jobs:
 
           ### C言語版（llvm-mos）
           - **QE** - Vi-like日本語テキストエディタ
-            - Shift-JIS対応、IME統合、ファイルI/O機能付き
-            - 詳細は `c/src/qe/README.md` を参照
-          
+
+          ### Oscar64版
+          - **QEO64** - Oscar64版QEテキストエディタ（IME統合）
+          - **JTERM** - 日本語ターミナル（Ultimate II+ネットワーク、XMODEM対応）
+          - **jterm.crt** - ターミナルMagicDesk CRT版（zipに同梱）
+
           ---
-          
+
           ## What's Changed
-          
+
           <!-- ここに自動生成された変更履歴が追加されます -->
         generate_release_notes: true
         draft: false

@@ -9,15 +9,20 @@ TARGET = hello_easyflash
 SOURCE = $(TARGET).c
 OUTPUT_CRT = $(TARGET).crt
 
-# Source files
-JTXT_SOURCES = src/jtxt.c src/jtxt_bitmap.c src/jtxt_charset.c \
-               src/jtxt_resource.c src/jtxt_text.c
+# Shared jtxt library
+LIB_DIR = ../oscar64_lib
+
+# Source files (shared with oscar64_lib)
+JTXT_SOURCES = $(LIB_DIR)/src/jtxt.c $(LIB_DIR)/src/jtxt_bitmap.c \
+               $(LIB_DIR)/src/jtxt_charset.c $(LIB_DIR)/src/jtxt_resource.c \
+               $(LIB_DIR)/src/jtxt_text.c
 
 # Oscar64 compiler options for EasyFlash
 # -n: No startup code (we provide our own)
 # -tf=crt: Target format is CRT (EasyFlash, 16KB banks)
-# -i: Include directory
-OSCAR_FLAGS = -n -tf=crt -i=include
+# -dJTXT_EASYFLASH: Enable EasyFlash-specific code paths
+# -i: Include directory for jtxt library headers
+OSCAR_FLAGS = -n -tf=crt -dJTXT_EASYFLASH -i=$(LIB_DIR)/include
 
 # Emulator configuration
 EMU = x64sc
@@ -50,11 +55,47 @@ run: $(OUTPUT_CRT)
 		exit 1; \
 	fi
 
+# Build benchmark
+BENCH_SOURCE = bench_bitmap.c
+BENCH_CRT = bench_bitmap.crt
+
+.PHONY: bench
+bench: $(BENCH_CRT)
+
+$(BENCH_CRT): $(BENCH_SOURCE) $(JTXT_SOURCES)
+	@echo "=== Building Bitmap Benchmark ==="
+	$(OSCAR64) $(OSCAR_FLAGS) -o=$(BENCH_CRT) $(BENCH_SOURCE) $(JTXT_SOURCES)
+	@echo "Benchmark CRT created: $(BENCH_CRT)"
+	@ls -lh $(BENCH_CRT)
+
+# Run benchmark in emulator
+.PHONY: run-bench
+run-bench: $(BENCH_CRT)
+	@echo "=== Running Benchmark ==="
+	$(EMU) $(EMU_OPTS) $(BENCH_CRT)
+
+# UII+ test (no jtxt, minimal CRT)
+UII_TEST_CRT = test_uii.crt
+
+.PHONY: test-uii
+test-uii: $(UII_TEST_CRT)
+
+$(UII_TEST_CRT): test_uii.c
+	@echo "=== Building UII+ CRT Test ==="
+	$(OSCAR64) -n -tf=crt -o=$(UII_TEST_CRT) test_uii.c
+	@echo "Test CRT created: $(UII_TEST_CRT)"
+	@ls -lh $(UII_TEST_CRT)
+
+.PHONY: run-uii
+run-uii: $(UII_TEST_CRT)
+	$(EMU) $(EMU_OPTS) $(UII_TEST_CRT)
+
 # Clean build artifacts
 .PHONY: clean
 clean:
 	@echo "Cleaning build artifacts..."
 	@rm -f $(OUTPUT_CRT) $(TARGET).asm $(TARGET).lbl $(TARGET).map $(TARGET).int
+	@rm -f $(BENCH_CRT) bench_bitmap.asm bench_bitmap.lbl bench_bitmap.map bench_bitmap.int
 	@echo "Cleanup completed"
 
 # Show help

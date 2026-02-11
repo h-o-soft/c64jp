@@ -155,6 +155,10 @@ make TARGET=hello_resource run-strings
 | `make oscar-crt-build` | Build EasyFlash CRT |
 | `make oscar-crt-run` | Build and run EasyFlash CRT |
 | `make oscar-clean` | Remove Oscar64 build artifacts |
+| `make oscar-term-build` | Build terminal with Oscar64 |
+| `make oscar-term-crt` | Build terminal MagicDesk CRT |
+
+See [c/oscar64_term/README.md](c/oscar64_term/README.md) for details.
 
 ### Configurable Variables
 ```bash
@@ -183,10 +187,11 @@ c64-kanji-rom/
 │       ├── swiftlink.p8   # SwiftLink communication library
 │       └── *.p8           # Various test programs
 ├── c/                      # C language version
-│   ├── oscar64_lib/       # Oscar64 shared jtxt library
+│   ├── oscar64_lib/       # Oscar64 shared library (jtxt, IME, c64u network)
 │   ├── oscar64/           # Oscar64 hello sample
 │   ├── oscar64_qe/        # Oscar64 QE editor
 │   ├── oscar64_crt/       # Oscar64 EasyFlash CRT version
+│   ├── oscar64_term/      # Terminal (Ultimate II+ network)
 │   └── src/               # llvm-mos version source
 ├── fontconv/               # Font conversion tool (Misaki font → binary)
 │   ├── mkfont.py          # Font conversion script
@@ -364,7 +369,6 @@ Hiroshi OGINO / H.O SOFT Inc.
 - **Dictionary Improvement**: Enhance dictionary data for more accurate conversion (especially adding proper nouns)
 
 ### Application Development
-- **Simple Text Editor**: Create a text editor with Japanese input support
 - **Communication App**: Simple support for escape sequences
 
 ## Acknowledgments
