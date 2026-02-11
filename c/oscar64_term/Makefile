@@ -5,7 +5,7 @@
 
 # Configuration
 OSCAR64 = oscar64
-TARGET = term
+TARGET = jterm
 OUTPUT = $(TARGET).prg
 OUTPUT_CRT = $(TARGET).crt
 
@@ -93,6 +93,7 @@ help:
 	@echo ""
 	@echo "Usage:"
 	@echo "  make        - Build $(OUTPUT)"
+	@echo "  make crt    - Build $(OUTPUT_CRT)"
 	@echo "  make deploy - Build and run on Ultimate 64 ($(U64_IP))"
 	@echo "  make run    - Build and run in VICE emulator"
 	@echo "  make clean  - Remove build artifacts"

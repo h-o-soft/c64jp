@@ -155,9 +155,10 @@ make TARGET=hello_resource run-strings
 | `make oscar-crt-build` | EasyFlash CRTをビルド |
 | `make oscar-crt-run` | EasyFlash CRTをビルドして実行 |
 | `make oscar-clean` | Oscar64ビルド成果物を削除 |
+| `make oscar-term-build` | Oscar64でターミナルをビルド |
+| `make oscar-term-crt` | ターミナルMagicDesk CRTをビルド |
 
-### ターミナル（Ultimate II+ネットワーク）
-ターミナルアプリケーションは `c/oscar64_term/` で個別にビルドします。詳しくは [c/oscar64_term/README.md](c/oscar64_term/README.md) を参照してください。
+詳しくは [c/oscar64_term/README.md](c/oscar64_term/README.md) を参照してください。
 
 ### 設定可能な変数
 ```bash

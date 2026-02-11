@@ -9,26 +9,26 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.x'
-        
+
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
         pip install pillow  # PIL for image processing
-        
+
     - name: Install VICE emulator (for c1541)
       run: |
         sudo apt-get update
         sudo apt-get install -y vice
-        
+
     - name: Install Prog8 compiler and 64tass
       run: |
         # Install 64tass from Ubuntu repositories
@@ -53,12 +53,20 @@ jobs:
         sudo mkdir -p /opt/llvm-mos
         sudo tar -xf llvm-mos-linux.tar.xz -C /opt/llvm-mos --strip-components=1
         echo "/opt/llvm-mos/bin" >> $GITHUB_PATH
+
+    - name: Install Oscar64 compiler
+      run: |
+        git clone --depth 1 https://github.com/drmortalwombat/oscar64.git /tmp/oscar64
+        make -C /tmp/oscar64/make -j$(nproc) compiler
+        sudo make -C /tmp/oscar64/make install
+        oscar64 --version || echo "Oscar64 installed"
+
     - name: Test font conversion
       run: make fonts
-      
+
     - name: Test dictionary conversion
       run: make dict
-      
+
     - name: Test individual program builds
       run: |
         make TARGET=hello
@@ -66,20 +74,30 @@ jobs:
         make TARGET=hello_resource
         make TARGET=ime_test
         make TARGET=modem_test
-        
+
+    - name: Build Oscar64 programs
+      run: |
+        make oscar-build
+        make oscar-qe-build
+        make oscar-term-build
+        make oscar-term-crt
+
     - name: Test D64 creation
       run: make d64
-      
+
     - name: Verify release files
       run: |
         make release-files
         ls -la crt/c64jpkanji.crt
+        ls -la c/oscar64_term/jterm.crt
         ls -la prog8/build/c64jp_programs.d64
-        
+
     - name: Build summary
       run: |
-        echo "✅ Build completed successfully"
-        echo "📦 CRT size: $(stat -c%s crt/c64jpkanji.crt) bytes"
-        echo "💾 D64 size: $(stat -c%s prog8/build/c64jp_programs.d64) bytes"
-        echo "🎯 Prog8 programs: hello, hello_bitmap, hello_resource, ime_test, modem_test"
-        echo "🔧 C programs: qe ($(stat -c%s c/build/qe.prg) bytes)"
+        echo "Build completed successfully"
+        echo "CRT size: $(stat -c%s crt/c64jpkanji.crt) bytes"
+        echo "Terminal CRT size: $(stat -c%s c/oscar64_term/jterm.crt) bytes"
+        echo "D64 size: $(stat -c%s prog8/build/c64jp_programs.d64) bytes"
+        echo "Prog8 programs: hello, hello_bitmap, hello_resource, ime_test, modem_test"
+        echo "C programs (llvm-mos): qe ($(stat -c%s c/build/qe.prg) bytes)"
+        echo "Oscar64 programs: qeo64, jterm, jterm.crt"

@@ -155,9 +155,10 @@ make TARGET=hello_resource run-strings
 | `make oscar-crt-build` | Build EasyFlash CRT |
 | `make oscar-crt-run` | Build and run EasyFlash CRT |
 | `make oscar-clean` | Remove Oscar64 build artifacts |
+| `make oscar-term-build` | Build terminal with Oscar64 |
+| `make oscar-term-crt` | Build terminal MagicDesk CRT |
 
-### Terminal (Ultimate II+ Network)
-The terminal application is built separately in `c/oscar64_term/`. See [c/oscar64_term/README.md](c/oscar64_term/README.md) for details.
+See [c/oscar64_term/README.md](c/oscar64_term/README.md) for details.
 
 ### Configurable Variables
 ```bash
