@@ -56,7 +56,9 @@ jobs:
 
     - name: Install Oscar64 compiler
       run: |
-        git clone --depth 1 https://github.com/drmortalwombat/oscar64.git /tmp/oscar64
+        # Pin to v1.32.267 due to code generation bug in later versions
+        # (assertion failure in NativeCodeGenerator.cpp CopyCode with large projects)
+        git clone --branch v1.32.267 --depth 1 https://github.com/drmortalwombat/oscar64.git /tmp/oscar64
         make -C /tmp/oscar64/make -j$(nproc) compiler
         sudo make -C /tmp/oscar64/make install
         oscar64 --version || echo "Oscar64 installed"
