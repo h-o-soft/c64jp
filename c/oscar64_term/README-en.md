@@ -12,10 +12,12 @@ A terminal application that connects to Telnet servers via Ultimate II+ cartridg
 ### Features
 
 - **Telnet Connection**: TCP/IP network connection via Ultimate II+
-- **Japanese Display**: Japanese display in bitmap mode via jtxt library
+- **Japanese Display**: Shift-JIS Japanese display in bitmap mode via jtxt library
 - **Kana-Kanji Conversion**: Japanese input via IME with romaji input
+- **ANSI Escape Sequences**: Cursor movement (A/B/C/D/H), screen/line erase (J/K), 8-color SGR (m)
 - **XMODEM File Transfer**: Both download (receive) and upload (send) supported
-- **VT100 Escape Sequences**: Basic cursor movement and screen control
+- **Phonebook**: Connection list management via `u-term.seq` file (ultimateterm compatible)
+- **Ultimate 64 Turbo Mode**: Automatically set to maximum speed on startup
 - **MagicDesk CRT Version**: Standalone cartridge operation using overlay banks
 
 ## File Structure
@@ -53,19 +55,22 @@ make run
 ## Usage
 
 ### Connecting
-1. A hostname input screen appears on startup
-2. Enter the destination hostname and port number, then press Return
+1. A host selection screen appears on startup (phonebook displayed if `u-term.seq` exists)
+2. Select a host with cursor keys and press Return, or choose "Manual input" for manual entry
 3. After successful connection, the terminal session begins
+
+### Screen Layout
+
+- Row 0-23: Terminal display area (24 rows)
+- Row 24: IME input line
 
 ### Terminal Operations
 
 | Key | Action |
 |-----|--------|
 | `Commodore + Space` | Enable/disable IME (Kana-Kanji conversion) |
-| `F1` | XMODEM download (receive file) |
-| `F3` | XMODEM upload (send file) |
-| `F7` | Disconnect |
-| `RUN/STOP` | Abort XMODEM transfer |
+| `F3` | XMODEM file transfer menu |
+| `RUN/STOP` | Disconnect and return to host selection |
 
 ### XMODEM File Transfer
 

@@ -74,6 +74,9 @@ typedef struct {
     uint8_t bitmap_top_row;
     uint8_t bitmap_bottom_row;
     bool bitmap_window_enabled;
+
+    // Deferred wrap: cursor stays at column 39 until next character
+    bool wrap_pending;
 } jtxt_state_t;
 
 // Main API functions
@@ -106,6 +109,8 @@ void jtxt_bwindow_disable(void);
 void jtxt_bautowrap_enable(void);
 void jtxt_bautowrap_disable(void);
 void jtxt_bscroll_up(void);
+void jtxt_bclear_to_eol(void);
+void jtxt_bclear_line(uint8_t row);
 
 // String resource functions
 bool jtxt_load_string_resource(uint8_t resource_number);

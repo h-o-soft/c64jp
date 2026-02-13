@@ -50,11 +50,13 @@ void jtxt_bcls(void) {
     jtxt_state.cursor_x = 0;
     jtxt_state.cursor_y = jtxt_state.bitmap_top_row;
     jtxt_state.sjis_first_byte = 0;
+    jtxt_state.wrap_pending = false;
 }
 
 void jtxt_blocate(uint8_t x, uint8_t y) {
     jtxt_state.cursor_x = x;
     jtxt_state.cursor_y = y;
+    jtxt_state.wrap_pending = false;
 }
 
 void jtxt_bcolor(uint8_t fg, uint8_t bg) {
@@ -74,6 +76,7 @@ void jtxt_bautowrap_disable(void) { is_auto_scroll = false; }
 
 void jtxt_bnewline(void) {
     jtxt_state.cursor_x = 0;
+    jtxt_state.wrap_pending = false;
 
     if (jtxt_state.cursor_y >= jtxt_state.bitmap_bottom_row) {
         if (jtxt_state.bitmap_window_enabled) {
@@ -89,6 +92,12 @@ void jtxt_bbackspace(void) {
     // Cancel Shift-JIS state if active
     if (jtxt_state.sjis_first_byte != 0) {
         jtxt_state.sjis_first_byte = 0;
+        return;
+    }
+
+    // Cancel deferred wrap
+    if (jtxt_state.wrap_pending) {
+        jtxt_state.wrap_pending = false;
         return;
     }
 
@@ -123,9 +132,9 @@ void jtxt_bscroll_up(void) {
         memcpy((void*)screen_row_addr[i], (void*)screen_row_addr[i + 1], 40);
     }
 
-    // Clear last row
+    // Clear last row with default color (white on black)
     memset((void*)bitmap_row_addr[bottom], 0, 320);
-    memset((void*)screen_row_addr[bottom], jtxt_state.bitmap_color, 40);
+    memset((void*)screen_row_addr[bottom], (COLOR_WHITE << 4) | COLOR_BLACK, 40);
 }
 
 void jtxt_draw_font_to_bitmap(uint16_t char_code) {
@@ -224,7 +233,7 @@ void jtxt_draw_font_to_bitmap(uint16_t char_code) {
     *(volatile uint8_t *)0x01 = saved_01;
 }
 
-// Internal function for bitmap character output
+// Internal function for bitmap character output (deferred wrap)
 static void jtxt_bputc_internal(uint16_t char_code) {
     // Check window bounds
     if (jtxt_state.bitmap_window_enabled &&
@@ -233,13 +242,20 @@ static void jtxt_bputc_internal(uint16_t char_code) {
         return;
     }
 
+    // Deferred wrap: execute pending wrap before drawing next character
+    if (is_auto_scroll && jtxt_state.wrap_pending) {
+        jtxt_bnewline();
+    }
+
     // Draw character to bitmap
     jtxt_draw_font_to_bitmap(char_code);
 
     // Move to next position
     jtxt_state.cursor_x++;
     if (is_auto_scroll && jtxt_state.cursor_x >= 40) {
-        jtxt_bnewline();
+        // Don't wrap yet — set pending flag and keep cursor at column 39
+        jtxt_state.cursor_x = 39;
+        jtxt_state.wrap_pending = true;
     }
 }
 
@@ -320,6 +336,7 @@ void jtxt_bputs_fast(const char* str) {
     _fast_cx = jtxt_state.cursor_x;
     _fast_sjis = 0;
     uint8_t cy = jtxt_state.cursor_y;
+    bool fast_wrap_pending = jtxt_state.wrap_pending;
     uint8_t color = jtxt_state.bitmap_color;
 
     // Cache row base addresses (updated on row change)
@@ -332,6 +349,15 @@ void jtxt_bputs_fast(const char* str) {
 
     while ((_fast_ch = (uint8_t)*str++) != 0) {
         uint16_t char_code;
+
+        // Deferred wrap: execute pending wrap before drawing
+        if (fast_wrap_pending) {
+            _fast_cx = 0;
+            fast_wrap_pending = false;
+            if (cy < 24) cy++;
+            bmp_base = bitmap_row_addr[cy];
+            scr_base = screen_row_addr[cy];
+        }
 
         // Inline SJIS state machine
         if (_fast_sjis != 0) {
@@ -463,13 +489,11 @@ void jtxt_bputs_fast(const char* str) {
 #endif
         }
 
-        // Advance cursor
+        // Advance cursor (deferred wrap)
         _fast_cx++;
         if (_fast_cx >= 40) {
-            _fast_cx = 0;
-            if (cy < 24) cy++;
-            bmp_base = bitmap_row_addr[cy];
-            scr_base = screen_row_addr[cy];
+            _fast_cx = 39;
+            fast_wrap_pending = true;
         }
     }
 
@@ -481,6 +505,21 @@ void jtxt_bputs_fast(const char* str) {
     jtxt_state.cursor_x = _fast_cx;
     jtxt_state.cursor_y = cy;
     jtxt_state.sjis_first_byte = _fast_sjis;
+    jtxt_state.wrap_pending = fast_wrap_pending;
+}
+
+void jtxt_bclear_to_eol(void) {
+    uint8_t cx = jtxt_state.cursor_x;
+    uint8_t cy = jtxt_state.cursor_y;
+    uint16_t bmp = bitmap_row_addr[cy] + ((uint16_t)cx << 3);
+    uint8_t count = 40 - cx;
+    memset((void*)bmp, 0, (uint16_t)count << 3);
+    memset((void*)(screen_row_addr[cy] + cx), jtxt_state.bitmap_color, count);
+}
+
+void jtxt_bclear_line(uint8_t row) {
+    memset((void*)bitmap_row_addr[row], 0, 320);
+    memset((void*)screen_row_addr[row], jtxt_state.bitmap_color, 40);
 }
 
 void jtxt_bput_hex2(uint8_t value) {
