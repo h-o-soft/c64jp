@@ -25,7 +25,8 @@ jtxt_state_t jtxt_state = {.chr_start = 128,
                            .bitmap_color = (1 << 4) | 0,
                            .bitmap_top_row = 0,
                            .bitmap_bottom_row = 24,
-                           .bitmap_window_enabled = false};
+                           .bitmap_window_enabled = false,
+                           .wrap_pending = false};
 #endif
 // CRT: jtxt_state must be defined in main application (RAM region)
 
@@ -49,6 +50,7 @@ void jtxt_init(uint8_t mode) {
   jtxt_state.bitmap_top_row = 0;
   jtxt_state.bitmap_bottom_row = 24;
   jtxt_state.bitmap_window_enabled = false;
+  jtxt_state.wrap_pending = false;
 #endif
 
   // Set display mode

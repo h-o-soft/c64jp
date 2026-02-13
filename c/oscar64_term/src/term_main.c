@@ -27,6 +27,7 @@
 #include "c64_oscar.h"
 #include "jtxt.h"
 #include "c64u_network.h"
+#include "c64u_turbo.h"
 #include "telnet.h"
 #include "ime.h"
 #include "xmodem.h"
@@ -63,8 +64,9 @@ jtxt_state_t jtxt_state;
 
 #else
 // PRG: Memory layout for bitmap mode
-#pragma region(main, 0x0900, 0x5C00, , , { code, data, stack, heap })
-#pragma region(extra, 0xa000, 0xd000, , , { bss })
+#pragma region(main, 0x0900, 0x5C00, , , { code, data, stack })
+#pragma region(extra, 0xa000, 0xd000, , , { bss, heap })
+#pragma stacksize(512)
 #endif
 
 // Host list
@@ -496,6 +498,121 @@ static int select_host(void)
 
 static unsigned char ansi_state = ANSI_STATE_NORMAL;
 
+// CSI parameter buffer
+#define ANSI_MAX_PARAMS 4
+static unsigned char ansi_params[ANSI_MAX_PARAMS];
+static unsigned char ansi_param_count;
+static unsigned int ansi_current_param;
+static bool ansi_has_digit;
+
+// ANSI 8-color -> C64 color mapping
+static const unsigned char ansi_to_c64_color[8] = {
+	COLOR_BLACK, COLOR_RED, COLOR_GREEN, COLOR_YELLOW,
+	COLOR_BLUE, COLOR_PURPLE, COLOR_CYAN, COLOR_WHITE
+};
+
+// BS erase pattern detection state machine
+// Halfwidth erase: BS SP BS         -> jtxt_bbackspace() once
+// Fullwidth erase: BS BS SP SP BS BS -> jtxt_bbackspace() once
+// Other patterns are discarded
+#define BS_STATE_NORMAL         0
+#define BS_STATE_BS1            1  // Got BS
+#define BS_STATE_BS_SP          2  // Got BS SP (halfwidth: expect BS)
+#define BS_STATE_BS_BS          3  // Got BS BS (fullwidth: expect SP)
+#define BS_STATE_BS_BS_SP       4  // Got BS BS SP (expect SP)
+#define BS_STATE_BS_BS_SP_SP    5  // Got BS BS SP SP (expect BS)
+#define BS_STATE_BS_BS_SP_SP_BS 6  // Got BS BS SP SP BS (expect BS)
+
+static unsigned char bs_state = BS_STATE_NORMAL;
+
+// CSI command dispatch
+static void ansi_dispatch(unsigned char final_byte)
+{
+	unsigned char p0 = (ansi_param_count > 0) ? ansi_params[0] : 0;
+	unsigned char p1 = (ansi_param_count > 1) ? ansi_params[1] : 0;
+	unsigned char n;
+
+	switch (final_byte) {
+	case 'A': // Cursor Up
+		n = (p0 > 0) ? p0 : 1;
+		if (jtxt_state.cursor_y >= jtxt_state.bitmap_top_row + n)
+			jtxt_state.cursor_y -= n;
+		else
+			jtxt_state.cursor_y = jtxt_state.bitmap_top_row;
+		jtxt_state.wrap_pending = false;
+		break;
+	case 'B': // Cursor Down
+		n = (p0 > 0) ? p0 : 1;
+		if (jtxt_state.cursor_y + n <= jtxt_state.bitmap_bottom_row)
+			jtxt_state.cursor_y += n;
+		else
+			jtxt_state.cursor_y = jtxt_state.bitmap_bottom_row;
+		jtxt_state.wrap_pending = false;
+		break;
+	case 'C': // Cursor Forward
+		n = (p0 > 0) ? p0 : 1;
+		jtxt_state.cursor_x += n;
+		if (jtxt_state.cursor_x > 39) jtxt_state.cursor_x = 39;
+		jtxt_state.wrap_pending = false;
+		break;
+	case 'D': // Cursor Back
+		n = (p0 > 0) ? p0 : 1;
+		if (jtxt_state.cursor_x >= n)
+			jtxt_state.cursor_x -= n;
+		else
+			jtxt_state.cursor_x = 0;
+		jtxt_state.wrap_pending = false;
+		break;
+	case 'H': // Cursor Position (row;col, 1-based)
+	case 'f':
+		{
+			unsigned char row = (p0 > 0) ? p0 - 1 : 0;
+			unsigned char col = (p1 > 0) ? p1 - 1 : 0;
+			row += jtxt_state.bitmap_top_row;
+			if (row > jtxt_state.bitmap_bottom_row)
+				row = jtxt_state.bitmap_bottom_row;
+			if (col > 39) col = 39;
+			jtxt_blocate(col, row);
+		}
+		break;
+	case 'J': // Erase in Display
+		if (p0 == 0 || ansi_param_count == 0) {
+			jtxt_bclear_to_eol();
+			for (unsigned char r = jtxt_state.cursor_y + 1;
+			     r <= jtxt_state.bitmap_bottom_row; r++) {
+				jtxt_bclear_line(r);
+			}
+		} else if (p0 == 2) {
+			jtxt_bcls();
+		}
+		break;
+	case 'K': // Erase in Line
+		if (p0 == 0 || ansi_param_count == 0) {
+			jtxt_bclear_to_eol();
+		} else if (p0 == 2) {
+			jtxt_bclear_line(jtxt_state.cursor_y);
+		}
+		break;
+	case 'm': // SGR
+		if (ansi_param_count == 0) {
+			jtxt_bcolor(COLOR_WHITE, COLOR_BLACK);
+		}
+		for (unsigned char i = 0; i < ansi_param_count; i++) {
+			unsigned char p = ansi_params[i];
+			if (p == 0) {
+				jtxt_bcolor(COLOR_WHITE, COLOR_BLACK);
+			} else if (p >= 30 && p <= 37) {
+				unsigned char bg = jtxt_state.bitmap_color & 0x0F;
+				jtxt_bcolor(ansi_to_c64_color[p - 30], bg);
+			} else if (p >= 40 && p <= 47) {
+				unsigned char fg = jtxt_state.bitmap_color >> 4;
+				jtxt_bcolor(fg, ansi_to_c64_color[p - 40]);
+			}
+		}
+		break;
+	}
+}
+
 // Process received data and display on terminal
 static void process_received(unsigned char socketid, int datacount)
 {
@@ -523,6 +640,9 @@ static void process_received(unsigned char socketid, int datacount)
 			if (c == 0x5B) {
 				// ESC [ -> CSI sequence
 				ansi_state = ANSI_STATE_CSI;
+				ansi_param_count = 0;
+				ansi_current_param = 0;
+				ansi_has_digit = false;
 			} else {
 				// ESC + something else, ignore and reset
 				ansi_state = ANSI_STATE_NORMAL;
@@ -531,12 +651,56 @@ static void process_received(unsigned char socketid, int datacount)
 		}
 
 		if (ansi_state == ANSI_STATE_CSI) {
-			// Inside CSI sequence: skip until final byte (0x40-0x7E)
-			if (c >= 0x40 && c <= 0x7E) {
+			if (c >= '0' && c <= '9') {
+				ansi_current_param = ansi_current_param * 10 + (c - '0');
+				ansi_has_digit = true;
+			} else if (c == ';') {
+				if (ansi_param_count < ANSI_MAX_PARAMS) {
+					ansi_params[ansi_param_count++] =
+						(ansi_current_param > 255) ? 255 : (unsigned char)ansi_current_param;
+				}
+				ansi_current_param = 0;
+				ansi_has_digit = false;
+			} else if (c >= 0x40 && c <= 0x7E) {
+				if (ansi_has_digit && ansi_param_count < ANSI_MAX_PARAMS) {
+					ansi_params[ansi_param_count++] =
+						(ansi_current_param > 255) ? 255 : (unsigned char)ansi_current_param;
+				}
+				ansi_dispatch(c);
 				ansi_state = ANSI_STATE_NORMAL;
 			}
-			// Intermediate bytes (0x20-0x3F) and params are skipped
 			continue;
+		}
+
+		// BS erase pattern detection
+		if (bs_state != BS_STATE_NORMAL) {
+			switch (bs_state) {
+			case BS_STATE_BS1:
+				if (c == 0x20) { bs_state = BS_STATE_BS_SP; continue; }
+				if (c == 0x08) { bs_state = BS_STATE_BS_BS; continue; }
+				bs_state = BS_STATE_NORMAL;
+				break; // pattern broken, fall through to process c
+			case BS_STATE_BS_SP:
+				bs_state = BS_STATE_NORMAL;
+				if (c == 0x08) { jtxt_bbackspace(); continue; }
+				break; // pattern broken
+			case BS_STATE_BS_BS:
+				if (c == 0x20) { bs_state = BS_STATE_BS_BS_SP; continue; }
+				bs_state = BS_STATE_NORMAL;
+				break;
+			case BS_STATE_BS_BS_SP:
+				if (c == 0x20) { bs_state = BS_STATE_BS_BS_SP_SP; continue; }
+				bs_state = BS_STATE_NORMAL;
+				break;
+			case BS_STATE_BS_BS_SP_SP:
+				if (c == 0x08) { bs_state = BS_STATE_BS_BS_SP_SP_BS; continue; }
+				bs_state = BS_STATE_NORMAL;
+				break;
+			case BS_STATE_BS_BS_SP_SP_BS:
+				bs_state = BS_STATE_NORMAL;
+				if (c == 0x08) { jtxt_bbackspace(); continue; }
+				break;
+			}
 		}
 
 		// Normal character processing
@@ -550,9 +714,9 @@ static void process_received(unsigned char socketid, int datacount)
 		} else if (c == 0x0A) {
 			// LF - newline
 			jtxt_bnewline();
-		} else if (c == 0x08 || c == 0x7F) {
-			// Backspace or DEL
-			jtxt_bbackspace();
+		} else if (c == 0x08) {
+			// BS - start pattern detection (don't erase yet)
+			bs_state = BS_STATE_BS1;
 		} else if (c >= 0x20) {
 			// Printable ASCII + high bytes (Shift-JIS, half-width kana, etc.)
 			// jtxt_bputc handles Shift-JIS multi-byte internally
@@ -574,24 +738,13 @@ static int terminal_session(void)
 	int datacount;
 	unsigned char key;
 
-	// Set up terminal window
+	// Set up terminal window (Row 0-23: terminal, Row 24: IME)
 	jtxt_bcls();
-	jtxt_bwindow(1, 24);
+	jtxt_bwindow(0, 23);
 	jtxt_bwindow_enable();
 	jtxt_bautowrap_enable();
 
-	// Status line
 	jtxt_blocate(0, 0);
-	jtxt_bcolor(COLOR_CYAN, COLOR_BLACK);
-	print_host_port(connect_host, connect_port);
-	jtxt_bputs(" Connecting...");
-	{
-		unsigned char x = jtxt_state.cursor_x;
-		while (x < 40) { jtxt_bputc(' '); x++; }
-	}
-
-	// Move cursor to terminal area
-	jtxt_blocate(0, 1);
 	jtxt_bcolor(COLOR_LIGHTGREEN, COLOR_BLACK);
 
 	jtxt_bputs("Connecting to ");
@@ -615,19 +768,9 @@ static int terminal_session(void)
 		return 1;
 	}
 
-	// Connected - update status line
-	jtxt_blocate(0, 0);
-	jtxt_bcolor(COLOR_CYAN, COLOR_BLACK);
-	print_host_port(connect_host, connect_port);
-	jtxt_bputs(" Connected");
-	{
-		unsigned char x = jtxt_state.cursor_x;
-		while (x < 40) { jtxt_bputc(' '); x++; }
-	}
-
+	// Connected
 	jtxt_bcolor(COLOR_LIGHTGREEN, COLOR_BLACK);
 	jtxt_bputs("Connected! (RUN/STOP to disconnect)");
-	jtxt_bnewline();
 	jtxt_bnewline();
 	jtxt_bcolor(COLOR_WHITE, COLOR_BLACK);
 
@@ -639,6 +782,7 @@ static int terminal_session(void)
 #endif
 	ime_init();
 	ansi_state = ANSI_STATE_NORMAL;
+	bs_state = BS_STATE_NORMAL;
 
 	// Main terminal loop
 	while (1) {
@@ -767,6 +911,9 @@ static void terminal_app(void)
 {
 	int active_iface;
 
+	// Enable Ultimate 64 turbo mode (max speed)
+	c64u_turbo_set(C64U_SPEED_MAX);
+
 #ifdef JTXT_CRT
 	// CRT: Zero-initialize BSS region ($C000-$CFFF)
 	memset((void *)0xC000, 0, 0x1000);
@@ -842,15 +989,40 @@ static void terminal_app(void)
 	// Main loop: select host -> connect -> session -> repeat
 	while (1) {
 		if (!select_host()) {
-			break; // User pressed RUN/STOP
+#ifdef JTXT_CRT
+			continue; // CRT: no exit, return to host selection
+#else
+			break;
+#endif
 		}
 
 		if (!terminal_session()) {
-			break; // User wants to exit
+#ifdef JTXT_CRT
+			continue; // CRT: no exit, return to host selection
+#else
+			break;
+#endif
 		}
 	}
 
+	c64u_turbo_disable();
 	jtxt_cleanup();
+}
+
+// Cold restart: restore KERNAL state and jump to reset vector
+static void cold_restart(void)
+{
+	// Restore normal memory configuration (BASIC + KERNAL + I/O visible)
+	POKE(0x01, 0x37);
+
+	__asm {
+		jsr $FF8A  // RESTOR: Restore default KERNAL vectors
+		jsr $FF81  // CINT: Initialize screen editor
+		jsr $FF84  // IOINIT: Initialize I/O devices
+		ldx #$ff
+		txs        // Reset stack pointer
+		jmp $FCE2  // Cold start
+	}
 }
 
 #ifdef JTXT_MAGICDESK_CRT
@@ -905,7 +1077,8 @@ int main(void)
 	terminal_app();
 #endif
 
-	return 0;
+	cold_restart();
+	return 0; // unreachable
 }
 
 //=============================================================================
